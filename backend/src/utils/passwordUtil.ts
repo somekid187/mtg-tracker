@@ -3,9 +3,9 @@
  * Code inspired by the readme of the argon2 package: https://www.npmjs.com/package/argon2
  */
 
-const argon2 = require('argon2');
+import argon2 from 'argon2';
 
-export async function hashPassword(password) {
+export async function hashPassword(password:string) :Promise<string> {
     try {
         // Hash the password using argon2
         const hash = await argon2.hash(password);
@@ -17,7 +17,7 @@ export async function hashPassword(password) {
     }
 }
 
-export async function verifyPassword(hash, password) {
+export async function verifyPassword(hash:string, password:string): Promise<boolean> {
     try {
         if( await argon2.verify(hash, password) ) {
             // Password match
