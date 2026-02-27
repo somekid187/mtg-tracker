@@ -2,9 +2,9 @@ USE `mtg-tracker`;
 
 DELIMITER $$
 
-DROP PROCEDURE IF EXISTS sp_update_user $$
+DROP PROCEDURE IF EXISTS sp_user_update $$
 
-CREATE PROCEDURE sp_update_user(
+CREATE PROCEDURE sp_user_update(
     IN in_pk_appUser BIGINT,
     IN in_username VARCHAR(255),
     IN in_email VARCHAR(255),

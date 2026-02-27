@@ -2,9 +2,9 @@ USE `mtg-tracker`;
 
 DELIMITER $$
 
-DROP PROCEDURE IF EXISTS sp_get_user $$
+DROP PROCEDURE IF EXISTS sp_users_get $$
 
-CREATE PROCEDURE sp_get_user(
+CREATE PROCEDURE sp_users_get(
     IN in_page INT,
     OUT out_response JSON
 )

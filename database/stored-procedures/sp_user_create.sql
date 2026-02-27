@@ -2,9 +2,9 @@ USE `mtg-tracker`;
 
 DELIMITER $$
 
-DROP PROCEDURE IF EXISTS sp_create_user $$
+DROP PROCEDURE IF EXISTS sp_user_create $$
 
-CREATE PROCEDURE sp_create_user(
+CREATE PROCEDURE sp_user_create(
     IN in_username VARCHAR(255),
     IN in_email VARCHAR(255),
     IN in_passwordHash VARCHAR(255),

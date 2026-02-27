@@ -47,6 +47,8 @@ CREATE TABLE `Match`
     startTime          TIME    NOT NULL,
     endTime            TIME,
     isTeamMatch        TINYINT NOT NULL DEFAULT 0,
+    commanderThreshold INT,
+    counterThreshold   INT,
     fk_appUser_creates BIGINT  NOT NULL,
     CONSTRAINT fkc_appUser_creates_match
         FOREIGN KEY (fk_appUser_creates)

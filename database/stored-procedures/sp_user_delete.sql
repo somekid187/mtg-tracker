@@ -2,9 +2,9 @@ USE `mtg-tracker`;
 
 DELIMITER $$
 
-DROP PROCEDURE IF EXISTS sp_delete_user $$
+DROP PROCEDURE IF EXISTS sp_user_delete $$
 
-CREATE PROCEDURE sp_delete_user(
+CREATE PROCEDURE sp_user_delete(
     IN in_pk_appUser BIGINT,
     OUT out_response JSON
 )
