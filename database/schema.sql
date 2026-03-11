@@ -60,7 +60,7 @@ CREATE TABLE Player
 (
     pk_player               BIGINT AUTO_INCREMENT PRIMARY KEY,
     startingLife            INT    NOT NULL,
-    finalLife               INT    NOT NULL,
+    finalLife               INT,
     isWinner                TINYINT,
     tax                     INT,
     placement               INT    NOT NULL,
@@ -125,6 +125,28 @@ CREATE TABLE InviteCode
             REFERENCES `Match` (pk_match)
             ON DELETE CASCADE
 );
+
+CREATE TABLE RefreshToken
+(
+    pk_refreshToken BIGINT AUTO_INCREMENT PRIMARY KEY,
+    tokenHash           VARCHAR(255)               NOT NULL,
+    ipLastUsed          VARCHAR(255),
+    ipCreated           VARCHAR(255),
+    deviceName            VARCHAR(255),
+    expiresAt         DATETIME NOT NULL,
+    createdAt         DATETIME DEFAULT CURRENT_TIMESTAMP() NOT NULL,
+    revokedAt         DATETIME,
+    fk_refreshToken_rotatedFrom BIGINT UNIQUE,
+    fk_appUser_refreshes BIGINT NOT NULL,
+    CONSTRAINT fkc_refreshToken_rotatedFrom_refreshToken
+        FOREIGN KEY (fk_refreshToken_rotatedFrom)
+            REFERENCES RefreshToken (pk_refreshToken)
+            ON DELETE CASCADE,
+    CONSTRAINT fkc_appUser_refreshes_refreshToken
+        FOREIGN KEY (fk_appUser_refreshes)
+            REFERENCES AppUser (pk_appUser)
+            ON DELETE CASCADE
+)
 
 
 

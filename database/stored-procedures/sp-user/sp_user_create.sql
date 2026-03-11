@@ -11,12 +11,14 @@ CREATE PROCEDURE sp_user_create(
     IN in_verificationToken VARCHAR(255),
     OUT out_response JSON
 )
-proc:BEGIN
+proc:
+BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
         BEGIN
             -- Rollback transaction on error
             ROLLBACK;
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while creating the user.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while creating the user.',
+                                           'code', 'INTERNAL_SERVER_ERROR');
         END;
 
     -- Start transaction
@@ -25,14 +27,16 @@ proc:BEGIN
     -- Check if username already exists
     IF EXISTS (SELECT 1 FROM AppUser WHERE username = in_username) THEN
         ROLLBACK;
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Username already exists.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Username already exists.',
+                                       'code', 'VALIDATION_USERNAME_EXISTS');
         LEAVE proc;
     END IF;
 
     -- Check if email already exists
     IF EXISTS (SELECT 1 FROM AppUser WHERE email = in_email) THEN
         ROLLBACK;
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Email already exists.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Email already exists.',
+                                       'code', 'VALIDATION_EMAIL_EXISTS');
         LEAVE proc;
     END IF;
 
@@ -44,7 +48,11 @@ proc:BEGIN
     COMMIT;
 
     SET out_response = JSON_OBJECT('success', TRUE,
+                                   'code', '',
                                    'message',
                                    'User created successfully. Please check your email for verification instructions.',
-                       'userId', LAST_INSERT_ID());
+                                   'code', 'SUCCESS_CREATED',
+                                   'data', JSON_OBJECT('pk_appUser', LAST_INSERT_ID()));
 END $$
+
+DELIMITER ;

@@ -40,3 +40,5 @@ proc:BEGIN
         LIMIT 10 OFFSET offset
     ) AS users;
 END $$
+
+DELIMITER ;

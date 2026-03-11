@@ -28,20 +28,6 @@ proc:BEGIN
         LEAVE proc;
     END IF;
 
-    -- Check if username already exists for another user
-    IF EXISTS (SELECT 1 FROM AppUser WHERE username = in_username AND pk_appUser != in_pk_appUser) THEN
-        ROLLBACK;
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Username already exists.');
-        LEAVE proc;
-    END IF;
-
-    -- Check if email already exists for another user
-    IF EXISTS (SELECT 1 FROM AppUser WHERE email = in_email AND pk_appUser != in_pk_appUser) THEN
-        ROLLBACK;
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Email already exists.');
-        LEAVE proc;
-    END IF;
-
     -- Update user information
     UPDATE AppUser
     SET username = COALESCE(in_username, username),
@@ -53,3 +39,5 @@ proc:BEGIN
 
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'User updated successfully.');
 END $$
+
+DELIMITER ;

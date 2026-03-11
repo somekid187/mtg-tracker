@@ -25,3 +25,5 @@ BEGIN
     SET out_response =
             JSON_OBJECT('success', TRUE, 'message', 'Guest created successfully.', 'guestId', LAST_INSERT_ID());
 END $$
+
+DELIMITER ;

@@ -34,3 +34,5 @@ proc:BEGIN
 
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'User deleted successfully.');
 END $$
+
+DELIMITER ;
