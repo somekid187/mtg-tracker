@@ -28,11 +28,16 @@
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-player/sp_player_update.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-player/sp_players_get.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-refreshToken/sp_refreshToken_create.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-refreshToken/sp_refreshToken_delete.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-refreshToken/sp_refreshToken_get_by_id.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-refreshToken/sp_refreshToken_revoke.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-team/sp_team_create.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-team/sp_team_delete.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-team/sp_team_get_by_id.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-team/sp_team_update.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-team/sp_teams_get.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_activate.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_change_password.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_create.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_delete.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_get_by_email.sql" dialect="MySQL" />

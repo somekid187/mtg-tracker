@@ -28,11 +28,16 @@
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-player/sp_player_update.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-player/sp_players_get.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-refreshToken/sp_refreshToken_create.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-refreshToken/sp_refreshToken_delete.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-refreshToken/sp_refreshToken_get_by_id.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-refreshToken/sp_refreshToken_revoke.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-team/sp_team_create.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-team/sp_team_delete.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-team/sp_team_get_by_id.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-team/sp_team_update.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-team/sp_teams_get.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_activate.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_change_password.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_create.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_delete.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_get_by_email.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />

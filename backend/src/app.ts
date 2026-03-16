@@ -3,6 +3,7 @@ import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes";
+import userRoutes from "./routes/user.routes";
 import errorHandler from "./middleware/error.middleware";
 
 const app = express();
@@ -21,6 +22,7 @@ app.use(cookieParser());
 
 // Routes
 app.use("/auth", authRoutes);
+app.use("/user", userRoutes);
 
 // Health Check Endpoint
 app.get('/health', (_req, res) => {
