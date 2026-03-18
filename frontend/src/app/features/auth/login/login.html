@@ -1,6 +1,6 @@
 <h2>Login</h2>
 
-<form [formGroup]="loginForm">
+<form (submit)="onSubmit()" [formGroup]="loginForm">
   <div>
     <label>Email</label>
     <input type="email" formControlName="email" />

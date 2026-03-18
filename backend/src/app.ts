@@ -14,6 +14,7 @@ app.use(helmet());
 
 // CORS Middleware
 app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+console.log(`CORS configured to allow requests from: ${process.env.FRONTEND_URL}`);
 
 // Body Parsing
 app.use(express.json());
