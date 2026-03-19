@@ -1,0 +1,31 @@
+<div>
+    <form (submit)="onSubmitGame()" [formGroup]="gameForm">
+        <div>
+            <select id="formatSelect" formControlName="format">
+                @for ( format of formats; track format.name ) {
+                    <option value="{{format.name}}">{{format.name}}</option>
+                } @empty {
+                    <option disabled>No formats available</option>
+                }
+            </select>
+            <div id="playerCount">
+                @for(i of playerCountOptions; track i){
+                    <button
+                        type="button"
+                        class="number"
+                        [class.selected]="gameForm.get('playerCount')?.value === i"
+                        [attr.aria-pressed]="gameForm.get('playerCount')?.value === i"
+                        (click)="selectPlayerCount(i)"
+                    >{{i}}
+                    </button>
+                }
+            </div>
+            <div id="roomName">
+                <input type="text" formControlName="roomName" placeholder="Room Name (optional)" />
+            </div>
+            <button type="submit" [disabled]="gameForm.invalid">
+                Start Game
+            </button>
+        </div>
+    </form>
+</div>

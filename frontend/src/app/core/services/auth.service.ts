@@ -64,11 +64,31 @@ export class AuthService {
 
   async refreshToken() {
     const refreshToken = this.getRefreshToken();
-    const response: any = await firstValueFrom(
-      this.http.post(`${this.apiUrl}/refresh`, { refreshToken }),
-    );
-    this.setTokens(response.data.accessToken, response.data.refreshToken);
-    return response;
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    try {
+      const response: any = await firstValueFrom(
+        this.http.post(`${this.apiUrl}/refresh`, { refreshToken }, { withCredentials: true }),
+      );
+      
+      if (response && response.data && response.data.accessToken && response.data.refreshToken) {
+        this.setTokens(response.data.accessToken, response.data.refreshToken);
+        return response;
+      } else {
+        throw new Error('Invalid refresh response: ' + JSON.stringify(response));
+      }
+    } catch (error: any) {
+      // Check for specific error codes
+      if (error.error && error.error.code === 'VALIDATION_TOKEN_ALREADY_REVOKED') {
+        // This is not actually an error - the token is already in the desired state
+      } else {
+        console.error('Token refresh failed:', error);
+      }
+      this.clearTokens();
+      throw new Error('Token refresh failed: ' + (error.message || 'Unknown error'));
+    }
   }
 
   async logout() {

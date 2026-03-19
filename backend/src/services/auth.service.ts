@@ -325,6 +325,7 @@ export async function refreshService(req: any) {
     );
 
     const tokenResult = JSON.parse(tokenRows[0].result);
+    
     if (!tokenResult || !tokenResult.success) {
       throw {
         code: tokenResult?.code || "TOKEN_CREATION_FAILED",
@@ -332,6 +333,7 @@ export async function refreshService(req: any) {
       };
     }
 
+    // Now revoke the old token
     await connection.execute("CALL sp_refreshToken_revoke(?,?, @out_response)", [
       tokenHash, userId,
     ]);
@@ -340,11 +342,17 @@ export async function refreshService(req: any) {
       "SELECT @out_response as result",
     );
     const revResult = JSON.parse(revRows[0].result);
+    
+    // Make token revocation idempotent - if token is already revoked, that's fine
     if (!revResult || !revResult.success) {
-      throw {
-        code: revResult?.code || "TOKEN_REVOCATION_FAILED",
-        message: revResult?.message || "Failed to revoke refresh token",
-      };
+      if (revResult.code === 'VALIDATION_TOKEN_ALREADY_REVOKED') {
+        // This is not actually an error - the token is already in the desired state
+      } else {
+        throw {
+          code: revResult?.code || "TOKEN_REVOCATION_FAILED",
+          message: revResult?.message || "Failed to revoke refresh token",
+        };
+      }
     }
 
     return {
