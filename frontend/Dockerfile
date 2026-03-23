@@ -1,9 +1,12 @@
 FROM node:24-alpine
-ENV NODE_ENV=development
+
 WORKDIR /app
 
-COPY package*.json package-lock.json* ./
-RUN --mount=type=cache,target=/root/.npm npm install
+COPY package*.json ./
+RUN npm ci
+
 COPY . .
-EXPOSE 4200
-CMD ["npm", "start", "--", "--host=0.0.0.0"]
+
+EXPOSE 5173
+
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]

@@ -4,9 +4,18 @@ import {
   encrypt,
   decrypt,
 } from "../utils/passwordUtil";
+
+// Helper function to create clean error objects
+function createError(code: string, message: string) {
+  // Create a completely clean error object with only the properties we want
+  const error = Object.create(null);
+  error.code = code;
+  error.message = message;
+  return error;
+}
 import pool from "../config/db.config";
 import crypto from "node:crypto";
-import jwt from "jsonwebtoken";
+
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -23,21 +32,14 @@ import {
 export async function registerService(req: any) {
   // Validate that req.body exists
   if (!req.body) {
-    throw {
-      code: "INVALID_REQUEST",
-      message:
-        "Request body is missing. Make sure Content-Type is application/json",
-    };
+    throw createError("INVALID_REQUEST", "Request body is missing. Make sure Content-Type is application/json");
   }
 
   const { username, email, password } = req.body;
 
   // Validate required fields
   if (!username || !email || !password) {
-    throw {
-      code: "MISSING_FIELDS",
-      message: "Username, email, and password are required",
-    };
+    throw createError("MISSING_FIELDS", "Username, email, and password are required");
   }
 
   const emailValidation = validateEmail(email);
@@ -46,13 +48,13 @@ export async function registerService(req: any) {
 
   // If any validation fails, throw an error with the corresponding message
   if (!emailValidation.isValid) {
-    throw { code: "INVALID_EMAIL", message: emailValidation.message };
+    throw createError("INVALID_EMAIL", emailValidation.message);
   }
   if (!passwordValidation.isValid) {
-    throw { code: "INVALID_PASSWORD", message: passwordValidation.message };
+    throw createError("INVALID_PASSWORD", passwordValidation.message);
   }
   if (!usernameValidation.isValid) {
-    throw { code: "INVALID_USERNAME", message: usernameValidation.message };
+    throw createError("INVALID_USERNAME", usernameValidation.message);
   }
 
   // Hash the password and generate a verification token
@@ -76,10 +78,7 @@ export async function registerService(req: any) {
     const result = JSON.parse(rows[0].result);
 
     if (!result || !result.success) {
-      throw {
-        code: result?.code || "INTERNAL_SERVER_ERROR",
-        message: result?.message || "An error occurred",
-      };
+      throw createError(result?.code || "INTERNAL_SERVER_ERROR", result?.message || "An error occurred");
     }
 
     // IMPORTANT: sp_user_create commits internally, so email sending can't be part of the same DB transaction.
@@ -102,12 +101,10 @@ export async function registerService(req: any) {
         }
       }
 
-      throw {
-        code: "ACTIVATION_EMAIL_FAILED",
-        message:
-          "User could not be registered because the activation email failed to send.",
-        cause: emailError?.message || String(emailError),
-      };
+      const error = createError("ACTIVATION_EMAIL_FAILED", "User could not be registered because "
+        + "the activation email failed to send.");
+      error.cause = emailError?.message || String(emailError);
+      throw error;
     }
 
     return {
@@ -123,27 +120,20 @@ export async function registerService(req: any) {
 export async function loginService(req: any) {
   // Validate that req.body exists
   if (!req.body) {
-    throw {
-      code: "INVALID_REQUEST",
-      message:
-        "Request body is missing. Make sure Content-Type is application/json",
-    };
+    throw createError("INVALID_REQUEST", "Request body is missing. Make sure Content-Type is application/json");
   }
 
   const { email, password } = req.body;
 
   // Validate required fields
   if (!email || !password) {
-    throw {
-      code: "MISSING_FIELDS",
-      message: "Email and password are required",
-    };
+    throw createError("MISSING_FIELDS", "Email and password are required");
   }
 
   const emailValidation = validateEmail(email);
 
   if (!emailValidation.isValid) {
-    throw { code: "INVALID_EMAIL", message: emailValidation.message };
+    throw createError("INVALID_EMAIL", emailValidation.message);
   }
 
   const connection = await pool.getConnection();
@@ -158,19 +148,21 @@ export async function loginService(req: any) {
     const result = JSON.parse(rows[0].result);
 
     if (!result || !result.success) {
-      throw {
-        code: result?.code || "INVALID_CREDENTIALS",
-        message: result?.message || "Invalid email or password",
-      };
+      // Map database error codes to our standard error codes
+      let errorCode = result?.code || "INVALID_CREDENTIALS";
+      
+      // Convert database-specific error codes to our standard ones
+      if (errorCode === "VALIDATION_USER_NOT_FOUND") {
+        errorCode = "INVALID_CREDENTIALS";
+      }
+      
+      throw createError(errorCode, result?.message || "Invalid email or password");
     }
 
     const passwordHash = decrypt(result.data.passwordHash);
     const passwordMatch = await verifyPassword(passwordHash, password);
     if (!passwordMatch) {
-      throw {
-        code: "INVALID_CREDENTIALS",
-        message: "Invalid email or password",
-      };
+      throw createError("INVALID_CREDENTIALS", "Invalid email or password");
     }
 
     // sp_user_get_password only returns the passwordHash, so we fetch the user id separately.
@@ -179,10 +171,7 @@ export async function loginService(req: any) {
       [email],
     );
     if (!userRows || userRows.length === 0) {
-      throw {
-        code: "INVALID_CREDENTIALS",
-        message: "Invalid email or password",
-      };
+      throw createError("INVALID_CREDENTIALS", "Invalid email or password");
     }
     const userId = userRows[0].pk_appUser;
 
@@ -221,10 +210,8 @@ export async function loginService(req: any) {
     const tokenResult = JSON.parse(tokenRows[0].result);
 
     if (!tokenResult || !tokenResult.success) {
-      throw {
-        code: tokenResult?.code || "TOKEN_CREATION_FAILED",
-        message: tokenResult?.message || "Failed to create refresh token",
-      };
+      throw createError(tokenResult?.code || "TOKEN_CREATION_FAILED",
+         tokenResult?.message || "Failed to create refresh token");
     }
 
     return {
@@ -244,19 +231,13 @@ export async function loginService(req: any) {
 
 export async function refreshService(req: any) {
   if (!req.body) {
-    throw {
-      code: "INVALID_REQUEST",
-      message:
-        "Request body is missing. Make sure Content-Type is application/json",
-    };
+    throw createError("INVALID_REQUEST", "Request body is missing. Make sure "
+      + "Content-Type is application/json");
   }
 
   const { refreshToken } = req.body;
   if (typeof refreshToken !== "string" || refreshToken.trim() === "") {
-    throw {
-      code: "MISSING_FIELDS",
-      message: "refreshToken is required",
-    };
+    throw createError("MISSING_FIELDS", "refreshToken is required");
   }
 
   const tokenHash = hashToken(refreshToken.trim());
@@ -270,26 +251,17 @@ export async function refreshService(req: any) {
     );
 
     if (!rows || rows.length === 0) {
-      throw {
-        code: "TOKEN_NOT_FOUND",
-        message: "Refresh token not found",
-      };
+      throw createError("TOKEN_NOT_FOUND", "Refresh token not found");
     }
 
     const token = rows[0];
 
     if (token.revokedAt) {
-      throw {
-        code: "TOKEN_REVOKED",
-        message: "Refresh token has been revoked",
-      };
+      throw createError("TOKEN_REVOKED", "Refresh token has been revoked");
     }
 
     if (new Date(token.expiresAt) < new Date()) {
-      throw {
-        code: "INVALID_TOKEN",
-        message: "Expired refresh token",
-      };
+      throw createError("INVALID_TOKEN", "Expired refresh token");
     }
 
     const userId = token.fk_appUser_refreshes;
@@ -327,10 +299,8 @@ export async function refreshService(req: any) {
     const tokenResult = JSON.parse(tokenRows[0].result);
     
     if (!tokenResult || !tokenResult.success) {
-      throw {
-        code: tokenResult?.code || "TOKEN_CREATION_FAILED",
-        message: tokenResult?.message || "Failed to create refresh token",
-      };
+      throw createError(tokenResult?.code || "TOKEN_CREATION_FAILED", tokenResult?.message 
+        || "Failed to create refresh token");
     }
 
     // Now revoke the old token
@@ -348,10 +318,8 @@ export async function refreshService(req: any) {
       if (revResult.code === 'VALIDATION_TOKEN_ALREADY_REVOKED') {
         // This is not actually an error - the token is already in the desired state
       } else {
-        throw {
-          code: revResult?.code || "TOKEN_REVOCATION_FAILED",
-          message: revResult?.message || "Failed to revoke refresh token",
-        };
+        throw createError(revResult?.code || "TOKEN_REVOCATION_FAILED", revResult?.message 
+          || "Failed to revoke refresh token");
       }
     }
 
@@ -370,19 +338,12 @@ export async function refreshService(req: any) {
 
 export async function logoutService(req: any) {
   if (!req.body) {
-    throw {
-      code: "INVALID_REQUEST",
-      message:
-        "Request body is missing. Make sure Content-Type is application/json",
-    };
+    throw createError("INVALID_REQUEST", "Request body is missing. Make sure Content-Type is application/json");
   }
 
   const { refreshToken } = req.body;
   if (typeof refreshToken !== "string" || refreshToken.trim() === "") {
-    throw {
-      code: "MISSING_FIELDS",
-      message: "refreshToken is required",
-    };
+    throw createError("MISSING_FIELDS", "refreshToken is required");
   }
 
   const tokenHash = hashToken(refreshToken.trim());
@@ -398,10 +359,8 @@ export async function logoutService(req: any) {
     );
     const tokenResult = JSON.parse(tokenRows[0].result);
     if (!tokenResult || !tokenResult.success) {
-      throw {
-        code: tokenResult?.code || "TOKEN_REVOCATION_FAILED",
-        message: tokenResult?.message || "Failed to revoke refresh token",
-      };
+      throw createError(tokenResult?.code || "TOKEN_REVOCATION_FAILED", tokenResult?.message 
+        || "Failed to revoke refresh token");
     }
     return {
       success: true,
@@ -411,10 +370,7 @@ export async function logoutService(req: any) {
       error: null,
     };
   } catch (error) {
-    throw {
-      code: "INTERNAL_SERVER_ERROR",
-      message: "An error occurred while revoking the refresh token",
-    };
+    throw createError("INTERNAL_SERVER_ERROR", "An error occurred while revoking the refresh token");
   } finally {
     connection.release();
   }
@@ -432,10 +388,8 @@ export async function activateService(req: any) {
     );
     const result = JSON.parse(rows[0].result);
     if (!result || !result.success) {
-      throw {
-        code: result?.code || "ACTIVATION_FAILED",
-        message: result?.message || "Failed to activate account",
-      };
+      throw createError(result?.code || "ACTIVATION_FAILED", result?.message 
+        || "Failed to activate account");
     }
     return {
       success: true,

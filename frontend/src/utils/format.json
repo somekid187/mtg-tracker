@@ -1,0 +1,86 @@
+{
+  "formats": [
+    {
+      "name": "Standard",
+      "starting_life": 20,
+      "has_commander_damage": false,
+      "has_tax": false,
+      "has_poison": true
+    },
+    {
+      "name": "Modern",
+      "starting_life": 20,
+      "has_commander_damage": false,
+      "has_tax": false,
+      "has_poison": true
+    },
+    {
+      "name": "Legacy",
+      "starting_life": 20,
+      "has_commander_damage": false,
+      "has_tax": false,
+      "has_poison": true
+    },
+    {
+      "name": "Vintage",
+      "starting_life": 20,
+      "has_commander_damage": false,
+      "has_tax": false,
+      "has_poison": true
+    },
+    {
+      "name": "Pioneer",
+      "starting_life": 20,
+      "has_commander_damage": false,
+      "has_tax": false,
+      "has_poison": true
+    },
+    {
+      "name": "Pauper",
+      "starting_life": 20,
+      "has_commander_damage": false,
+      "has_tax": false,
+      "has_poison": true
+    },
+    {
+      "name": "Draft",
+      "starting_life": 20,
+      "has_commander_damage": false,
+      "has_tax": false,
+      "has_poison": true
+    },
+    {
+      "name": "Sealed",
+      "starting_life": 20,
+      "has_commander_damage": false,
+      "has_tax": false,
+      "has_poison": true
+    },
+    {
+      "name": "Brawl",
+      "starting_life": 30,
+      "has_commander_damage": false,
+      "has_tax": true,
+      "has_poison": true
+    },
+    {
+      "name": "Two-Headed Giant",
+      "starting_life": 30,
+      "has_commander_damage": false,
+      "has_tax": false,
+      "has_poison": true
+    },
+    {
+      "name": "Commander",
+      "starting_life": 40,
+      "has_commander_damage": true,
+      "has_poison": true
+    },
+    {
+      "name": "Custom",
+      "starting_life": null,
+      "has_commander_damage": false,
+      "has_poison": false
+    }
+  ]
+}

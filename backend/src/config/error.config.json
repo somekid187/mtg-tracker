@@ -34,37 +34,59 @@
   },
   "VALIDATION_USER_NOT_FOUND": {
     "message": "User not found.",
-    "status": 404
+    "code": 404
   },
   "VALIDATION_INVALID_ROTATED_FROM": {
-    "status": 400
+    "code": 400
   },
   "VALIDATION_REFRESHTOKEN_NOT_FOUND": {
-    "status": 404
+    "code": 404
   },
   "REFRESHTOKEN_DELETED": {
-    "status": 200
+    "code": 200
   },
   "VALIDATION_TOKEN_NOT_FOUND": {
     "message": "Token not found.",
-    "status": 404
+    "code": 404
   },
   "VALIDATION_TOKEN_ALREADY_REVOKED": {
-    "status": 400
+    "code": 400
   },
   "USER_NOT_FOUND": {
-    "status": 404
+    "code": 404
   },
   "INVALID_RESET_TOKEN": {
-    "status": 400
+    "code": 400
   },
   "MISSING_CREDENTIALS": {
-    "status": 400
+    "code": 400
   },
   "PASSWORD_CHANGED": {
-    "status": 200
+    "code": 200
   },
   "SUCCESS_OK": {
-    "status": 200
+    "code": 200
+  },
+  "TOKEN_NOT_FOUND": {
+    "message": "Token not found.",
+    "code": 404
+  },
+  "TOKEN_REVOKED": {
+    "code": 401
+  },
+  "INVALID_TOKEN": {
+    "code": 401
+  },
+  "TOKEN_CREATION_FAILED": {
+    "code": 500
+  },
+  "TOKEN_REVOCATION_FAILED": {
+    "code": 500
+  },
+  "ACTIVATION_FAILED": {
+    "code": 400
+  },
+  "ACTIVATION_EMAIL_FAILED": {
+    "code": 500
   }
 }
