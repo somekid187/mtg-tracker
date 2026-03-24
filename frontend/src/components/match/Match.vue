@@ -13,9 +13,15 @@
             </select>
             <input v-if="match.format == 'Custom'" type="number" v-model.number="match.startingLife"
                 placeholder="Starting Life Total" />
+
+            <div v-if="match.format == 'Custom'" class="custom-toggles">
+                <label><input type="checkbox" v-model="customOptions.hasPoison" /> Poison Counters</label>
+                <label><input type="checkbox" v-model="customOptions.hasTax" /> Commander Tax</label>
+                <label><input type="checkbox" v-model="customOptions.hasCommanderDamage" /> Commander Damage</label>
+            </div>
             
             <label>Number of Players:</label>
-            <select v-model.number="match.playerCount" name="playerCount">
+            <select v-model="match.playerCount" name="playerCount">
                 <option value="">Select Player Count</option>
                 <option v-for="count in [2, 3, 4, 5, 6]" :key="count" :value="count">
                     {{ count }} Players
@@ -23,6 +29,7 @@
             </select>
             
             <button type="submit">Create Match</button>
+            <p v-if="createError" class="error">{{ createError }}</p>
         </form>
         
         <!-- Player Names Form -->
@@ -53,15 +60,30 @@ export default {
                 name: '',
                 format: '',
                 startingLife: 20,
-                playerCount: null
+                playerCount: ''
             },
             playerNames: [],
             formatOptions: formats.formats,
-            matchCreated: false
+            matchCreated: false,
+            createError: '',
+            customOptions: {
+                hasPoison: false,
+                hasTax: false,
+                hasCommanderDamage: false
+            }
         };
     },
     methods: {
         createMatch() {
+            if (!this.match.format) {
+                this.createError = 'Please select a format.';
+                return;
+            }
+            if (!this.match.playerCount) {
+                this.createError = 'Please select the number of players.';
+                return;
+            }
+            this.createError = '';
             this.matchCreated = true;
             console.log('Match details:', {
                 name: this.match.name,
@@ -72,8 +94,12 @@ export default {
         },
         startMatch() {
             const selectedFormat = this.formatOptions.find(f => f.name === this.match.format);
-            
-            // Create player objects with all required properties
+            const isCustom = this.match.format === 'Custom';
+            const hasPoison = isCustom ? this.customOptions.hasPoison : (selectedFormat?.has_poison ?? false);
+            const hasTax = isCustom ? this.customOptions.hasTax : (selectedFormat?.has_tax ?? false);
+            const hasCommanderDamage = isCustom ? this.customOptions.hasCommanderDamage : (selectedFormat?.has_commander_damage ?? false);
+            const count = parseInt(this.match.playerCount);
+
             const players = this.playerNames
                 .map((name, index) => ({
                     id: index + 1,
@@ -81,14 +107,24 @@ export default {
                     startingLife: this.match.startingLife,
                     finalLife: null,
                     isWinner: false,
-                    tax: selectedFormat?.has_tax ? 0 : null,
+                    tax: hasTax ? 0 : null,
                     placement: null,
-                    poisonCounter: 0
+                    poisonCounter: hasPoison ? 0 : null,
+                    commanderDamage: hasCommanderDamage
+                        ? Object.fromEntries(
+                            Array.from({ length: count }, (_, j) => j + 1)
+                                .filter(id => id !== index + 1)
+                                .map(id => [id, 0])
+                          )
+                        : null
                 }));
-            
+
             const matchData = {
                 ...this.match,
-                players: players
+                hasCommanderDamage,
+                hasPoison,
+                hasTax,
+                players
             };
             console.log('Match started:', matchData);
             
@@ -110,8 +146,9 @@ export default {
             }
         },
         'match.playerCount'(newCount) {
-            if (newCount) {
-                this.playerNames = Array(newCount).fill('');
+            const count = parseInt(newCount);
+            if (count) {
+                this.playerNames = Array(count).fill('');
             } else {
                 this.playerNames = [];
             }
@@ -119,3 +156,10 @@ export default {
     }
 };
 </script>
+
+<style scoped>
+.error {
+    color: red;
+    margin-top: 8px;
+}
+</style>

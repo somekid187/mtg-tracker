@@ -9,7 +9,8 @@ const router = createRouter({
     { path: '/activate', component: () => import('../components/auth/Activate.vue'), meta: { public: true } },
     { path: '/match', component: () => import('../components/match/Match.vue') },
     { path: '/match/:id', component: () => import('../components/match/MatchField.vue') },
-    { path: '', component: () => import('../components/home/Home.vue') },
+    { path: '/', component: () => import('../components/home/Home.vue') },
+    { path: '/dashboard', component: () => import('../components/dashboard/Dashboard.vue') },
   ],
 })
 
