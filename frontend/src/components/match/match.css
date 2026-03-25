@@ -1,0 +1,226 @@
+.page-layout {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+}
+
+.match-content {
+  padding: 2em 3em;
+  width: 100%;
+  height: 100%;
+  background-color: #292b2d;
+  overflow-y: auto;
+}
+
+.match-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2em;
+}
+
+.box {
+  position: relative;
+  border-radius: 20px;
+  padding: 2em;
+  background-color: #313338;
+  color: #fefefe;
+  font-family: 'Poppins', sans-serif;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.box h2 {
+  margin: 0 0 1.5em 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.form-input {
+  padding: 0.75em;
+  background-color: #414247;
+  border: 1px solid #595d63;
+  border-radius: 8px;
+  color: #fefefe;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1em;
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #ffd170;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #fefefe;
+  margin-top: 0.5em;
+}
+
+.custom-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  padding: 1em;
+  background-color: #414247;
+  border-radius: 8px;
+}
+
+.custom-toggles label {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  cursor: pointer;
+  color: #fefefe;
+}
+
+.custom-toggles input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.players-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  margin: 1.5em 0;
+}
+
+.player-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+.player-input label {
+  font-weight: 600;
+  color: #fefefe;
+}
+
+.player-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  flex-wrap: wrap;
+}
+
+.player-row .form-input {
+  flex: 1;
+  min-width: 150px;
+}
+
+.input-joined {
+  background-color: #4a5f3f;
+  border-color: #6fa366;
+}
+
+.badge-joined,
+.badge-sent {
+  padding: 0.5em 1em;
+  border-radius: 6px;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.badge-joined {
+  background-color: #4a5f3f;
+  color: #a0d995;
+}
+
+.badge-sent {
+  background-color: #5f5440;
+  color: #ffc107;
+}
+
+.invite-email-input {
+  min-width: 200px;
+}
+
+.btn-primary {
+  padding: 0.75em 2em;
+  background-color: #ffd170;
+  border: none;
+  border-radius: 12px;
+  color: #292b2d;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  align-self: flex-start;
+  margin-top: 1em;
+}
+
+.btn-primary:hover {
+  background-color: #ffc107;
+}
+
+.btn-primary:active {
+  background-color: #ffb300;
+}
+
+.btn-primary:disabled {
+  background-color: #999;
+  cursor: not-allowed;
+}
+
+.btn-invite,
+.btn-invite-send,
+.btn-invite-cancel {
+  padding: 0.5em 1em;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.btn-invite {
+  background-color: #ffd170;
+  color: #292b2d;
+}
+
+.btn-invite:hover {
+  background-color: #ffc107;
+}
+
+.btn-invite-send {
+  background-color: #6fa366;
+  color: #fefefe;
+}
+
+.btn-invite-send:hover {
+  background-color: #7fb875;
+}
+
+.btn-invite-send:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
+
+.btn-invite-cancel {
+  background-color: #6f5a5a;
+  color: #fefefe;
+  padding: 0.5em 0.75em;
+}
+
+.btn-invite-cancel:hover {
+  background-color: #8f7a7a;
+}
+
+.invite-error,
+.error {
+  color: #ff6b6b;
+  font-size: 0.9em;
+  margin-top: 0.5em;
+}

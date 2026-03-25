@@ -30,7 +30,7 @@ export default {
         .then(response => {
           console.log('Login successful', response);
           // Redirect to the desired page after login
-          this.$router.push('/match');
+          this.$router.push('/dashboard');
         })
         .catch(error => {
           console.error('Login failed', error);

@@ -1,85 +1,95 @@
 <template>
-    <div>
-        <h2>Create Match</h2>
+    <div class="page-layout">
+        <Sidebar />
+        <div class="match-content">
+            <div class="match-container">
+                <!-- Initial Match Setup Form -->
+                <form v-if="!matchCreated" @submit.prevent="createMatch" class="box form-section">
+                    <h2>Create Match</h2>
+                    <div class="form-group">
+                        <input type="text" v-model="match.name" placeholder="Match Name (optional)" class="form-input" />
+                        <select name="format" v-model="match.format" class="form-input">
+                            <option value="">Select Format</option>
+                            <option v-for="format in formatOptions" :key="format.name" :value="format.name">
+                                {{ format.name }}
+                            </option>
+                        </select>
+                        <input v-if="match.format == 'Custom'" type="number" v-model.number="match.startingLife"
+                            placeholder="Starting Life Total" class="form-input" />
 
-        <!-- Initial Match Setup Form -->
-        <form v-if="!matchCreated" @submit.prevent="createMatch">
-            <input type="text" v-model="match.name" placeholder="Match Name (optional)" />
-            <select name="format" id="" v-model="match.format">
-                <option value="">Select Format</option>
-                <option v-for="format in formatOptions" :key="format.name" :value="format.name">
-                    {{ format.name }}
-                </option>
-            </select>
-            <input v-if="match.format == 'Custom'" type="number" v-model.number="match.startingLife"
-                placeholder="Starting Life Total" />
+                        <div v-if="match.format == 'Custom'" class="custom-toggles">
+                            <label><input type="checkbox" v-model="customOptions.hasPoison" /> Poison Counters</label>
+                            <label><input type="checkbox" v-model="customOptions.hasTax" /> Commander Tax</label>
+                            <label><input type="checkbox" v-model="customOptions.hasCommanderDamage" /> Commander Damage</label>
+                        </div>
 
-            <div v-if="match.format == 'Custom'" class="custom-toggles">
-                <label><input type="checkbox" v-model="customOptions.hasPoison" /> Poison Counters</label>
-                <label><input type="checkbox" v-model="customOptions.hasTax" /> Commander Tax</label>
-                <label><input type="checkbox" v-model="customOptions.hasCommanderDamage" /> Commander Damage</label>
+                        <label class="form-label">Number of Players:</label>
+                        <select v-model="match.playerCount" class="form-input">
+                            <option value="">Select Player Count</option>
+                            <option v-for="count in [2, 3, 4, 5, 6]" :key="count" :value="count">
+                                {{ count }} Players
+                            </option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-primary" :disabled="loading">{{ loading ? 'Creating...' : 'Create Match' }}</button>
+                    <p v-if="createError" class="error">{{ createError }}</p>
+                </form>
+
+                <!-- Player Names Form -->
+                <form v-if="matchCreated" @submit.prevent="startMatch" class="box form-section">
+                    <h2>Enter Player Names</h2>
+                    <div class="players-list">
+                        <div v-for="(name, index) in playerNames" :key="index" class="player-input">
+                            <label>Player {{ index + 1 }}{{ index === 0 ? ' (You)' : '' }}:</label>
+                            <div class="player-row">
+                                <input
+                                    type="text"
+                                    v-model="playerNames[index]"
+                                    :placeholder="index === 0 ? (playerNames[0] || 'You') : `Player ${index + 1} name`"
+                                    :readonly="index === 0 || !!inviteSlots[index]?.joinedUsername"
+                                    :class="{ 'input-joined': !!inviteSlots[index]?.joinedUsername }"
+                                    class="form-input"
+                                />
+                                <template v-if="index > 0">
+                                    <template v-if="inviteSlots[index]?.joinedUsername">
+                                        <span class="badge-joined">✓ {{ inviteSlots[index].joinedUsername }}</span>
+                                    </template>
+                                    <template v-else-if="inviteSlots[index]?.sent">
+                                        <span class="badge-sent">Invite sent</span>
+                                    </template>
+                                    <template v-else-if="inviteSlots[index]?.showForm">
+                                        <input
+                                            type="email"
+                                            v-model="inviteSlots[index].email"
+                                            placeholder="Email address"
+                                            class="invite-email-input form-input"
+                                        />
+                                        <button type="button" class="btn-invite-send" @click="sendInvite(index)" :disabled="inviteSlots[index].sending">
+                                            {{ inviteSlots[index].sending ? '...' : 'Send' }}
+                                        </button>
+                                        <button type="button" class="btn-invite-cancel" @click="inviteSlots[index].showForm = false">✕</button>
+                                        <span v-if="inviteSlots[index].error" class="invite-error">{{ inviteSlots[index].error }}</span>
+                                    </template>
+                                    <template v-else>
+                                        <button type="button" class="btn-invite" @click="inviteSlots[index].showForm = true">Invite</button>
+                                    </template>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary" :disabled="loading">{{ loading ? 'Starting...' : 'Start Match' }}</button>
+                    <p v-if="startError" class="error">{{ startError }}</p>
+                </form>
             </div>
-
-            <label>Number of Players:</label>
-            <select v-model="match.playerCount" name="playerCount">
-                <option value="">Select Player Count</option>
-                <option v-for="count in [2, 3, 4, 5, 6]" :key="count" :value="count">
-                    {{ count }} Players
-                </option>
-            </select>
-
-            <button type="submit" :disabled="loading">{{ loading ? 'Creating...' : 'Create Match' }}</button>
-            <p v-if="createError" class="error">{{ createError }}</p>
-        </form>
-
-        <!-- Player Names Form -->
-        <form v-if="matchCreated" @submit.prevent="startMatch">
-            <h3>Enter Player Names</h3>
-            <div v-for="(name, index) in playerNames" :key="index" class="player-input">
-                <label>Player {{ index + 1 }}{{ index === 0 ? ' (You)' : '' }}:</label>
-                <div class="player-row">
-                    <input
-                        type="text"
-                        v-model="playerNames[index]"
-                        :placeholder="index === 0 ? (playerNames[0] || 'You') : `Player ${index + 1} name`"
-                        :readonly="index === 0 || !!inviteSlots[index]?.joinedUsername"
-                        :class="{ 'input-joined': !!inviteSlots[index]?.joinedUsername }"
-                    />
-                    <template v-if="index > 0">
-                        <template v-if="inviteSlots[index]?.joinedUsername">
-                            <span class="badge-joined">✓ {{ inviteSlots[index].joinedUsername }}</span>
-                        </template>
-                        <template v-else-if="inviteSlots[index]?.sent">
-                            <span class="badge-sent">Invite sent</span>
-                        </template>
-                        <template v-else-if="inviteSlots[index]?.showForm">
-                            <input
-                                type="email"
-                                v-model="inviteSlots[index].email"
-                                placeholder="Email address"
-                                class="invite-email-input"
-                            />
-                            <button type="button" class="btn-invite-send" @click="sendInvite(index)" :disabled="inviteSlots[index].sending">
-                                {{ inviteSlots[index].sending ? '...' : 'Send' }}
-                            </button>
-                            <button type="button" class="btn-invite-cancel" @click="inviteSlots[index].showForm = false">✕</button>
-                            <span v-if="inviteSlots[index].error" class="invite-error">{{ inviteSlots[index].error }}</span>
-                        </template>
-                        <template v-else>
-                            <button type="button" class="btn-invite" @click="inviteSlots[index].showForm = true">Invite</button>
-                        </template>
-                    </template>
-                </div>
-            </div>
-
-            <button type="submit" :disabled="loading">{{ loading ? 'Starting...' : 'Start Match' }}</button>
-            <p v-if="startError" class="error">{{ startError }}</p>
-        </form>
+        </div>
     </div>
 </template>
 
 <script>
 import { useRouter } from 'vue-router';
+import Sidebar from '../shared/Sidebar.vue';
 import formats from '../../utils/format.json';
 import { matchService } from '../../services/match.service';
 import { playerService } from '../../services/player.service';
@@ -87,6 +97,7 @@ import { guestService } from '../../services/guest.service';
 import authService from '../../services/auth.service';
 
 export default {
+    components: { Sidebar },
     setup() {
         const router = useRouter();
         return { router };
@@ -342,62 +353,4 @@ export default {
 };
 </script>
 
-<style scoped>
-.player-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-.invite-email-input {
-    padding: 4px 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-.btn-invite {
-    padding: 4px 10px;
-    background: #2563eb;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.85rem;
-}
-.btn-invite-send {
-    padding: 4px 10px;
-    background: #16a34a;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-.btn-invite-cancel {
-    padding: 4px 8px;
-    background: transparent;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    cursor: pointer;
-}
-.badge-sent {
-    font-size: 0.8rem;
-    color: #6b7280;
-    font-style: italic;
-}
-.badge-joined {
-    font-size: 0.85rem;
-    color: #16a34a;
-    font-weight: 600;
-}
-.invite-error {
-    color: red;
-    font-size: 0.8rem;
-}
-.input-joined {
-    background: #f0fdf4;
-    border-color: #16a34a;
-}
-.error {
-    color: red;
-    margin-top: 8px;
-}
-</style>
+<style scoped src="./match.css"></style>

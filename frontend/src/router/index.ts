@@ -10,8 +10,10 @@ const router = createRouter({
     { path: '/match', component: () => import('../components/match/Match.vue') },
     { path: '/match/join', component: () => import('../components/match/JoinMatch.vue') },
     { path: '/match/:id', component: () => import('../components/match/MatchField.vue') },
-    { path: '/', component: () => import('../components/home/Home.vue') },
+    { path: '/', component: () => import('../components/home/Home.vue'), meta: { public: true } },
+    { path: '/home', redirect: '/' },
     { path: '/dashboard', component: () => import('../components/dashboard/Dashboard.vue') },
+    { path: '/:pathMatch(.*)*', component: () => import('../components/shared/NotFound.vue'), meta: { public: true } },
   ],
 })
 

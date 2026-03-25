@@ -109,6 +109,10 @@ const authService = {
     return token
   },
 
+  isAuthenticated(): boolean {
+    return !!this.getAccessToken()
+  },
+
   logout() {
     localStorage.removeItem(accessTokenKey)
     localStorage.removeItem(refreshTokenKey)
