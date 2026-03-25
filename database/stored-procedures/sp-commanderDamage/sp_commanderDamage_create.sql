@@ -15,33 +15,33 @@ CREATE PROCEDURE sp_commanderDamage_create(
 proc:BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
         BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while creating the commander damage.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while creating the commander damage.', 'code', 'INTERNAL_SERVER_ERROR');
         END;
 
     IF in_fk_match_refersTo IS NULL THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match ID cannot be null.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match ID cannot be null.', 'code', 'VALIDATION_ERROR');
         LEAVE proc;
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM `Match` WHERE pk_match = in_fk_match_refersTo) THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match not found.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match not found.', 'code', 'MATCH_NOT_FOUND');
         LEAVE proc;
     END IF;
 
     IF in_fk_player_deals IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Player WHERE pk_player = in_fk_player_deals) THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Dealing player not found.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Dealing player not found.', 'code', 'PLAYER_NOT_FOUND');
         LEAVE proc;
     END IF;
 
     IF in_fk_player_receives IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Player WHERE pk_player = in_fk_player_receives) THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Receiving player not found.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Receiving player not found.', 'code', 'PLAYER_NOT_FOUND');
         LEAVE proc;
     END IF;
 
     INSERT INTO CommanderDamage (damageAmount, isLethal, fk_player_deals, fk_player_receives, fk_match_refersTo)
     VALUES (in_damageAmount, in_isLethal, in_fk_player_deals, in_fk_player_receives, in_fk_match_refersTo);
 
-    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Commander damage created successfully.', 'commanderDamageId', LAST_INSERT_ID());
+    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Commander damage created successfully.', 'code', 'SUCCESS_CREATED', 'data', JSON_OBJECT('pk_commanderDamage', LAST_INSERT_ID()));
 END $$
 
 DELIMITER ;

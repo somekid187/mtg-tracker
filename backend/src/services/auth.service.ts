@@ -167,16 +167,18 @@ export async function loginService(req: any) {
 
     // sp_user_get_password only returns the passwordHash, so we fetch the user id separately.
     const [userRows]: any = await connection.execute(
-      "SELECT pk_appUser FROM AppUser WHERE email = ?",
+      "SELECT pk_appUser, username FROM AppUser WHERE email = ?",
       [email],
     );
     if (!userRows || userRows.length === 0) {
       throw createError("INVALID_CREDENTIALS", "Invalid email or password");
     }
     const userId = userRows[0].pk_appUser;
+    const username = userRows[0].username;
 
     const accessToken = generateAccessToken({
       userId,
+      username,
     });
     const refreshToken = generateRefreshToken();
 
@@ -218,6 +220,7 @@ export async function loginService(req: any) {
       success: true,
       data: {
         userId,
+        username,
         email: email,
         accessToken,
         refreshToken,

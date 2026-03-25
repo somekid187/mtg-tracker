@@ -22,7 +22,7 @@ BEGIN
         BEGIN
             -- Rollback transaction on error
             ROLLBACK;
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while updating the user.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while updating the user.', 'code', 'INTERNAL_SERVER_ERROR');
         END;
 
     -- Start transaction
@@ -42,14 +42,14 @@ BEGIN
     -- Check if any row was updated
     IF ROW_COUNT() = 0 THEN
         ROLLBACK;
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match not found or no changes made.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match not found or no changes made.', 'code', 'MATCH_NOT_FOUND');
         LEAVE proc;
     END IF;
 
     -- Commit transaction
     COMMIT;
 
-    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Match updated successfully.');
+    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Match updated successfully.', 'code', 'SUCCESS_UPDATED', 'data', JSON_OBJECT('pk_match', in_pk_match));
 
 END $$
 

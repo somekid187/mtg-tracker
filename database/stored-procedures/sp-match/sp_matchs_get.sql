@@ -13,7 +13,7 @@ BEGIN
     DECLARE offset INT;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
         BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching matches.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching matches.', 'code', 'INTERNAL_SERVER_ERROR');
         END;
     SET offset = (in_page - 1) * 10;
 
@@ -21,6 +21,7 @@ BEGIN
     SELECT JSON_OBJECT(
                    'success', TRUE,
                    'message', 'Matches fetched successfully.',
+                   'code', 'SUCCESS_OK',
                    'data', IFNULL(JSON_ARRAYAGG(
                                           JSON_OBJECT(
                                                   'pk_match', `Match`.pk_match,

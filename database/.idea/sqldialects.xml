@@ -7,6 +7,12 @@
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-commanderDamage/sp_commanderDamage_get_by_id.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-commanderDamage/sp_commanderDamage_update.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-commanderDamage/sp_commanderDamages_get.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-friendship/sp_friendship_accept.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-friendship/sp_friendship_delete.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-friendship/sp_friendship_reject.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-friendship/sp_friendship_request.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-friendship/sp_friendship_requests_get.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-friendship/sp_friendships_get_by_user.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-guest/sp_guest_create.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-guest/sp_guest_delete.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-guest/sp_guest_get_by_id.sql" dialect="MySQL" />

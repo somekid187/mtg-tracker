@@ -1,4 +1,9 @@
-import { deleteUserService, getUserProfileService, updateUserProfileService, changePasswordService, requestPasswordResetService } from "../services/user.service";
+import {
+  deleteUserService, getUserProfileService, updateUserProfileService,
+  changePasswordService, requestPasswordResetService,
+  sendFriendRequestService, acceptFriendRequestService, rejectFriendRequestService,
+  removeFriendService, getFriendsService, getFriendRequestsService,
+} from "../services/user.service";
 
 export async function getUserProfile(req: any, res: any) {
     const userId = (req as any).user.userId;
@@ -26,4 +31,41 @@ export async function changePassword(req: any, res: any) {
 export async function requestPasswordReset(req:any, res:any) {
     const result = await requestPasswordResetService(req);
     res.status(200).json({ message: "Password reset requested successfully"});
+}
+
+export async function sendFriendRequest(req: any, res: any) {
+    const requesterId = req.user.userId;
+    const { receiverId } = req.body;
+    const result = await sendFriendRequestService(requesterId, receiverId);
+    res.status(201).json({ message: "Friend request sent", data: result.data });
+}
+
+export async function acceptFriendRequest(req: any, res: any) {
+    const userId = req.user.userId;
+    const result = await acceptFriendRequestService(req.params.id, userId);
+    res.status(200).json({ message: "Friend request accepted", data: result.data });
+}
+
+export async function rejectFriendRequest(req: any, res: any) {
+    const userId = req.user.userId;
+    const result = await rejectFriendRequestService(req.params.id, userId);
+    res.status(200).json({ message: "Friend request rejected", data: result.data });
+}
+
+export async function removeFriend(req: any, res: any) {
+    const userId = req.user.userId;
+    const result = await removeFriendService(req.params.id, userId);
+    res.status(200).json({ message: "Friend removed", data: result.data });
+}
+
+export async function getFriends(req: any, res: any) {
+    const userId = req.user.userId;
+    const result = await getFriendsService(userId);
+    res.status(200).json({ message: "Friends retrieved successfully", data: result.data });
+}
+
+export async function getFriendRequests(req: any, res: any) {
+    const userId = req.user.userId;
+    const result = await getFriendRequestsService(userId);
+    res.status(200).json({ message: "Friend requests retrieved successfully", data: result.data });
 }

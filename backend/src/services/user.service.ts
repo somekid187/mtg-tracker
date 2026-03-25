@@ -154,3 +154,94 @@ export async function changePasswordService(req: any) {
     connection.release();
   }
 }
+
+function createError(code: string, message: string) {
+  const error = Object.create(null);
+  error.code = code;
+  error.message = message;
+  return error;
+}
+
+export async function sendFriendRequestService(requesterId: string, receiverId: string) {
+  if (!receiverId) throw createError("MISSING_FIELDS", "Receiver user ID is required");
+  if (String(requesterId) === String(receiverId)) throw createError("INVALID_REQUEST", "You cannot send a friend request to yourself");
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.execute("CALL sp_friendship_request(?, ?, @out_response)", [requesterId, receiverId]);
+    const [rows]: any = await connection.query("SELECT @out_response as result");
+    const result = JSON.parse(rows[0].result);
+    if (!result?.success) throw createError(result?.code || "FRIENDSHIP_CREATE_FAILED", result?.message || "Failed to send friend request");
+    return { success: true, data: result.data };
+  } finally {
+    connection.release();
+  }
+}
+
+export async function acceptFriendRequestService(friendshipId: string, userId: string) {
+  if (!friendshipId) throw createError("MISSING_FIELDS", "Friendship ID is required");
+  const connection = await pool.getConnection();
+  try {
+    await connection.execute("CALL sp_friendship_accept(?, ?, @out_response)", [friendshipId, userId]);
+    const [rows]: any = await connection.query("SELECT @out_response as result");
+    const result = JSON.parse(rows[0].result);
+    if (!result?.success) throw createError(result?.code || "FRIENDSHIP_UPDATE_FAILED", result?.message || "Failed to accept friend request");
+    return { success: true, data: result.data };
+  } finally {
+    connection.release();
+  }
+}
+
+export async function rejectFriendRequestService(friendshipId: string, userId: string) {
+  if (!friendshipId) throw createError("MISSING_FIELDS", "Friendship ID is required");
+  const connection = await pool.getConnection();
+  try {
+    await connection.execute("CALL sp_friendship_reject(?, ?, @out_response)", [friendshipId, userId]);
+    const [rows]: any = await connection.query("SELECT @out_response as result");
+    const result = JSON.parse(rows[0].result);
+    if (!result?.success) throw createError(result?.code || "FRIENDSHIP_UPDATE_FAILED", result?.message || "Failed to reject friend request");
+    return { success: true, data: result.data };
+  } finally {
+    connection.release();
+  }
+}
+
+export async function removeFriendService(friendshipId: string, userId: string) {
+  if (!friendshipId) throw createError("MISSING_FIELDS", "Friendship ID is required");
+  const connection = await pool.getConnection();
+  try {
+    await connection.execute("CALL sp_friendship_delete(?, ?, @out_response)", [friendshipId, userId]);
+    const [rows]: any = await connection.query("SELECT @out_response as result");
+    const result = JSON.parse(rows[0].result);
+    if (!result?.success) throw createError(result?.code || "FRIENDSHIP_NOT_FOUND", result?.message || "Friendship not found");
+    return { success: true, data: result.data };
+  } finally {
+    connection.release();
+  }
+}
+
+export async function getFriendsService(userId: string) {
+  const connection = await pool.getConnection();
+  try {
+    await connection.execute("CALL sp_friendships_get_by_user(?, @out_response)", [userId]);
+    const [rows]: any = await connection.query("SELECT @out_response as result");
+    const result = JSON.parse(rows[0].result);
+    if (!result?.success) throw createError(result?.code || "INTERNAL_SERVER_ERROR", result?.message || "Failed to get friends");
+    return { success: true, data: result.data };
+  } finally {
+    connection.release();
+  }
+}
+
+export async function getFriendRequestsService(userId: string) {
+  const connection = await pool.getConnection();
+  try {
+    await connection.execute("CALL sp_friendship_requests_get(?, @out_response)", [userId]);
+    const [rows]: any = await connection.query("SELECT @out_response as result");
+    const result = JSON.parse(rows[0].result);
+    if (!result?.success) throw createError(result?.code || "INTERNAL_SERVER_ERROR", result?.message || "Failed to get friend requests");
+    return { success: true, data: result.data };
+  } finally {
+    connection.release();
+  }
+}

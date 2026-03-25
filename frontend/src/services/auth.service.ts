@@ -1,15 +1,25 @@
 import axios from 'axios'
 
-const apiURL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const apiURL = process.env.BACKEND_URL || 'http://localhost:3000'
 
 const accessTokenKey = 'accessToken'
 const refreshTokenKey = 'refreshToken'
+const usernameKey = 'username'
 
 function normalizeToken(value: unknown) {
   if (typeof value !== 'string') return null
   const trimmed = value.trim()
   if (!trimmed || trimmed === 'undefined' || trimmed === 'null') return null
   return trimmed
+}
+
+function decodeJwtPayload(token: string): any {
+  try {
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    return JSON.parse(atob(base64))
+  } catch {
+    return null
+  }
 }
 
 function extractAuthData(payload: any) {
@@ -34,6 +44,9 @@ const authService = {
 
         localStorage.setItem(accessTokenKey, accessToken)
         localStorage.setItem(refreshTokenKey, refreshToken)
+        if (authData?.username) {
+          localStorage.setItem(usernameKey, authData.username)
+        }
         return response.data
       })
       .catch((error: unknown) => {
@@ -70,6 +83,24 @@ const authService = {
     return token
   },
 
+  getUserId(): number | null {
+    const token = this.getAccessToken()
+    if (!token) return null
+    const payload = decodeJwtPayload(token)
+    return payload?.userId ?? null
+  },
+
+  getUsername(): string | null {
+    // First try localStorage (set on login, always fresh)
+    const stored = localStorage.getItem(usernameKey)
+    if (stored) return stored
+    // Fallback: decode from JWT (works if token has username claim)
+    const token = this.getAccessToken()
+    if (!token) return null
+    const payload = decodeJwtPayload(token)
+    return payload?.username ?? null
+  },
+
   getRefreshToken() {
     const token = normalizeToken(localStorage.getItem(refreshTokenKey))
     if (!token) {
@@ -81,6 +112,7 @@ const authService = {
   logout() {
     localStorage.removeItem(accessTokenKey)
     localStorage.removeItem(refreshTokenKey)
+    localStorage.removeItem(usernameKey)
   },
 
   refreshToken() {

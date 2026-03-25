@@ -12,26 +12,31 @@ proc:
 BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
         BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching the invite code.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching the invite code.', 'code', 'INTERNAL_SERVER_ERROR');
         END;
 
     IF in_pk_inviteCode IS NULL THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Invite code ID cannot be null.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Invite code ID cannot be null.', 'code', 'VALIDATION_ERROR');
         LEAVE proc;
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM InviteCode WHERE pk_inviteCode = in_pk_inviteCode) THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Invite code not found.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Invite code not found.', 'code', 'INVITE_NOT_FOUND');
         LEAVE proc;
     END IF;
 
     SELECT JSON_OBJECT(
-                   'pk_inviteCode', pk_inviteCode,
-                   'code', code,
-                   'status', status,
-                   'createdAt', createdAt,
-                   'expiresAt', expiresAt,
-                   'fk_match_connects', fk_match_connects
+                   'success', TRUE,
+                   'message', 'Invite code fetched successfully.',
+                   'code', 'SUCCESS_OK',
+                   'data', JSON_OBJECT(
+                       'pk_inviteCode', pk_inviteCode,
+                       'code', code,
+                       'status', status,
+                       'createdAt', createdAt,
+                       'expiresAt', expiresAt,
+                       'fk_match_connects', fk_match_connects
+                   )
            )
     INTO out_response
     FROM InviteCode

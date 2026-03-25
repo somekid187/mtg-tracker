@@ -18,14 +18,14 @@ BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
         BEGIN
             ROLLBACK;
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while updating the commander damage.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while updating the commander damage.', 'code', 'INTERNAL_SERVER_ERROR');
         END;
 
     START TRANSACTION;
 
     IF NOT EXISTS (SELECT 1 FROM CommanderDamage WHERE pk_commanderDamage = in_pk_commanderDamage) THEN
         ROLLBACK;
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Commander damage not found.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Commander damage not found.', 'code', 'COMMANDER_DAMAGE_NOT_FOUND');
         LEAVE proc;
     END IF;
 
@@ -39,13 +39,13 @@ BEGIN
 
     IF ROW_COUNT() = 0 THEN
         ROLLBACK;
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Commander damage not found or no changes made.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Commander damage not found or no changes made.', 'code', 'COMMANDER_DAMAGE_NOT_FOUND');
         LEAVE proc;
     END IF;
 
     COMMIT;
 
-    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Commander damage updated successfully.');
+    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Commander damage updated successfully.', 'code', 'SUCCESS_UPDATED', 'data', JSON_OBJECT('pk_commanderDamage', in_pk_commanderDamage));
 END $$
 
 DELIMITER ;

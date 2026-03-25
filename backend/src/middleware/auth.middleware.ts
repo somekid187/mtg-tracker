@@ -25,6 +25,9 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
         (req as any).user = payload;
         next();
     } catch (err) {
-        return res.status(403).json({ message: 'Invalid or expired token' });
+        if (err instanceof jwt.TokenExpiredError) {
+            return res.status(401).json({ message: 'Token expired' });
+        }
+        return res.status(403).json({ message: 'Invalid token' });
     }
 }

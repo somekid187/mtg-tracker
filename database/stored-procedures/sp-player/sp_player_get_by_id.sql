@@ -12,22 +12,23 @@ proc:
 BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
         BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching the player.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching the player.', 'code', 'INTERNAL_SERVER_ERROR');
         END;
 
     IF (in_pk_player IS NULL) THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Player ID cannot be null.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Player ID cannot be null.', 'code', 'VALIDATION_ERROR');
         LEAVE proc;
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM Player WHERE pk_player = in_pk_player) THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Player not found.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Player not found.', 'code', 'PLAYER_NOT_FOUND');
         LEAVE proc;
     END IF;
 
     SELECT JSON_OBJECT(
                    'success', TRUE,
                    'message', 'Player fetched successfully.',
+                   'code', 'SUCCESS_OK',
                    'data', JSON_OBJECT(
                            'pk_player', pk_player,
                            'startingLife', startingLife,

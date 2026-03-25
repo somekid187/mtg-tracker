@@ -23,7 +23,7 @@ proc:BEGIN
         BEGIN
             -- Rollback transaction on error
             ROLLBACK;
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while updating the player.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while updating the player.', 'code', 'INTERNAL_SERVER_ERROR');
         END;
 
     -- Start transaction
@@ -31,13 +31,13 @@ proc:BEGIN
     -- Check if player exists
     IF NOT EXISTS (SELECT 1 FROM Player WHERE pk_player = in_pk_player) THEN
         ROLLBACK;
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Player not found.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Player not found.', 'code', 'PLAYER_NOT_FOUND');
         LEAVE proc;
     END IF;
 
     IF in_fk_team_isIncluded IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Team WHERE pk_team = in_fk_team_isIncluded) THEN
         ROLLBACK;
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Team not found for the provided fk_team_isIncluded.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Team not found for the provided fk_team_isIncluded.', 'code', 'TEAM_NOT_FOUND');
         LEAVE proc;
     END IF;
 
@@ -58,7 +58,7 @@ proc:BEGIN
     -- Commit transaction
     COMMIT;
 
-    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Player updated successfully.');
+    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Player updated successfully.', 'code', 'SUCCESS_UPDATED', 'data', JSON_OBJECT('pk_player', in_pk_player));
 END $$
 
 DELIMITER ;

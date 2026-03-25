@@ -13,7 +13,7 @@ proc:BEGIN
         BEGIN
             -- Rollback transaction on error
             ROLLBACK;
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while deleting the user.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while deleting the user.', 'code', 'INTERNAL_SERVER_ERROR');
         END;
 
     -- Start transaction
@@ -22,7 +22,7 @@ proc:BEGIN
     -- Check if user exists
     IF NOT EXISTS (SELECT 1 FROM AppUser WHERE pk_appUser = in_pk_appUser) THEN
         ROLLBACK;
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'User not found.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'User not found.', 'code', 'USER_NOT_FOUND');
         LEAVE proc;
     END IF;
 
@@ -32,7 +32,7 @@ proc:BEGIN
     -- Commit transaction
     COMMIT;
 
-    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'User deleted successfully.');
+    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'User deleted successfully.', 'code', 'SUCCESS_DELETED', 'data', JSON_OBJECT('pk_appUser', in_pk_appUser));
 END $$
 
 DELIMITER ;

@@ -13,18 +13,17 @@ CREATE PROCEDURE sp_team_create(
 proc:BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
         BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while creating the team.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while creating the team.', 'code', 'INTERNAL_SERVER_ERROR');
         END;
     IF in_teamName IS NULL OR in_teamName = '' THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Team name cannot be empty.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Team name cannot be empty.', 'code', 'VALIDATION_ERROR');
         LEAVE proc;
     END IF;
 
     INSERT INTO Team (name, startingLife, finalLife)
     VALUES (in_teamName, startingLife, finalLife);
 
-    SET out_response =
-            JSON_OBJECT('success', TRUE, 'message', 'Team created successfully.', 'teamId', LAST_INSERT_ID());
+    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Team created successfully.', 'code', 'SUCCESS_CREATED', 'data', JSON_OBJECT('pk_team', LAST_INSERT_ID()));
 END $$
 
 DELIMITER ;

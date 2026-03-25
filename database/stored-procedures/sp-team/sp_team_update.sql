@@ -16,7 +16,7 @@ proc:BEGIN
         BEGIN
             -- Rollback transaction on error
             ROLLBACK;
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while updating the team.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while updating the team.', 'code', 'INTERNAL_SERVER_ERROR');
         END;
 
     -- Start transaction
@@ -25,7 +25,7 @@ proc:BEGIN
     -- Check if team exists
     IF NOT EXISTS (SELECT 1 FROM Team WHERE pk_team = in_pk_team) THEN
         ROLLBACK;
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Team not found.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Team not found.', 'code', 'TEAM_NOT_FOUND');
         LEAVE proc;
     END IF;
 
@@ -39,7 +39,7 @@ proc:BEGIN
     -- Commit transaction
     COMMIT;
 
-    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Team updated successfully.');
+    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Team updated successfully.', 'code', 'SUCCESS_UPDATED', 'data', JSON_OBJECT('pk_team', in_pk_team));
 END $$
 
 DELIMITER ;

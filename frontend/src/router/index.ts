@@ -8,6 +8,7 @@ const router = createRouter({
     { path: '/register', component: () => import('../components/auth/Register.vue'), meta: { public: true } },
     { path: '/activate', component: () => import('../components/auth/Activate.vue'), meta: { public: true } },
     { path: '/match', component: () => import('../components/match/Match.vue') },
+    { path: '/match/join', component: () => import('../components/match/JoinMatch.vue') },
     { path: '/match/:id', component: () => import('../components/match/MatchField.vue') },
     { path: '/', component: () => import('../components/home/Home.vue') },
     { path: '/dashboard', component: () => import('../components/dashboard/Dashboard.vue') },

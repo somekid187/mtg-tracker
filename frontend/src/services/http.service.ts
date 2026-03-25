@@ -2,7 +2,7 @@ import axios from "axios";
 import authService from "./auth.service";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: process.env.BACKEND_URL || "http://localhost:3000",
   withCredentials: true, // Include cookies in requests
 });
 

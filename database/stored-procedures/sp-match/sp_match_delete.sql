@@ -13,7 +13,7 @@ proc:BEGIN
         BEGIN
             -- Rollback transaction on error
             ROLLBACK;
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while deleting the match.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while deleting the match.', 'code', 'INTERNAL_SERVER_ERROR');
         END;
 
     -- Start transaction
@@ -21,7 +21,7 @@ proc:BEGIN
     -- Check if match exists
     IF NOT EXISTS (SELECT 1 FROM `Match` WHERE pk_match = in_pk_match) THEN
         ROLLBACK;
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match not found.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match not found.', 'code', 'MATCH_NOT_FOUND');
         LEAVE proc;
     END IF;
 
@@ -30,7 +30,7 @@ proc:BEGIN
 
     -- Commit transaction
     COMMIT;
-    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Match deleted successfully.');
+    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Match deleted successfully.', 'code', 'SUCCESS_DELETED', 'data', JSON_OBJECT('pk_match', in_pk_match));
 END $$
 
 DELIMITER ;

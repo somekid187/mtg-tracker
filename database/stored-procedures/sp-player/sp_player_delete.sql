@@ -13,7 +13,7 @@ proc:BEGIN
         BEGIN
             -- Rollback transaction on error
             ROLLBACK;
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while deleting the player.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while deleting the player.', 'code', 'INTERNAL_SERVER_ERROR');
         END;
 
     -- Start transaction
@@ -22,7 +22,7 @@ proc:BEGIN
     -- Check if player exists
     IF NOT EXISTS (SELECT 1 FROM Player WHERE pk_player = in_pk_player) THEN
         ROLLBACK;
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Player not found.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Player not found.', 'code', 'PLAYER_NOT_FOUND');
         LEAVE proc;
     END IF;
 
@@ -32,5 +32,5 @@ proc:BEGIN
     -- Commit transaction
     COMMIT;
 
-    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Player deleted successfully.');
+    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Player deleted successfully.', 'code', 'SUCCESS_DELETED', 'data', JSON_OBJECT('pk_player', in_pk_player));
 END $$

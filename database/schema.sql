@@ -18,6 +18,22 @@ CREATE TABLE AppUser
     tokenExpiresAt    DATETIME
 );
 
+CREATE TABLE Friendship
+(
+    pk_friendship        BIGINT AUTO_INCREMENT PRIMARY KEY,
+    fk_appUser_requests  BIGINT NOT NULL,
+    fk_appUser_receives  BIGINT NOT NULL,
+    status               ENUM ('pending', 'accepted', 'rejected') NOT NULL DEFAULT 'pending',
+    createdAt            DATETIME DEFAULT CURRENT_TIMESTAMP()     NOT NULL,
+    updatedAt            DATETIME DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),
+    UNIQUE KEY uq_friendship (fk_appUser_requests, fk_appUser_receives),
+    CONSTRAINT fkc_appUser_requests_friendship
+        FOREIGN KEY (fk_appUser_requests) REFERENCES AppUser (pk_appUser) ON DELETE CASCADE,
+    CONSTRAINT fkc_appUser_receives_friendship
+        FOREIGN KEY (fk_appUser_receives) REFERENCES AppUser (pk_appUser) ON DELETE CASCADE
+);
+
+
 CREATE TABLE Guest
 (
     pk_guest  BIGINT AUTO_INCREMENT PRIMARY KEY,

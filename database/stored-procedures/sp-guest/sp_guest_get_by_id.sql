@@ -12,23 +12,28 @@ proc:
 BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
         BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching the guest.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching the guest.', 'code', 'INTERNAL_SERVER_ERROR');
         END;
 
     IF in_pk_guest IS NULL THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Guest ID cannot be null.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Guest ID cannot be null.', 'code', 'VALIDATION_ERROR');
         LEAVE proc;
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM Guest WHERE pk_guest = in_pk_guest) THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Guest not found.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Guest not found.', 'code', 'GUEST_NOT_FOUND');
         LEAVE proc;
     END IF;
 
     SELECT JSON_OBJECT(
-                   'pk_guest', pk_guest,
-                   'guestName', guestName,
-                   'createdAt', createdAt
+                   'success', TRUE,
+                   'message', 'Guest fetched successfully.',
+                   'code', 'SUCCESS_OK',
+                   'data', JSON_OBJECT(
+                       'pk_guest', pk_guest,
+                       'guestName', guestName,
+                       'createdAt', createdAt
+                   )
            )
     INTO out_response
     FROM Guest

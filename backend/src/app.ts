@@ -4,12 +4,16 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
+import matchRoutes from "./routes/match.routes";
+import playerRoutes from "./routes/player.routes";
+import guestRoutes from "./routes/guest.routes";
+import commanderDamageRoutes from "./routes/commanderDamage.routes";
+import inviteCodeRoutes from "./routes/inviteCode.routes";
 import errorHandler from "./middleware/error.middleware";
 
 const app = express();
 
 // Security Middleware
-// This prevents attacks from web vulnerabilities like XSS, CSRF by setting appropriate HTTP headers.
 app.use(helmet());
 
 // CORS Middleware
@@ -20,10 +24,14 @@ console.log(`CORS configured to allow requests from: ${process.env.FRONTEND_URL}
 app.use(express.json());
 app.use(cookieParser());
 
-
 // Routes
 app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
+app.use("/match", matchRoutes);
+app.use("/player", playerRoutes);
+app.use("/guest", guestRoutes);
+app.use("/commander-damage", commanderDamageRoutes);
+app.use("/invite-code", inviteCodeRoutes);
 
 // Health Check Endpoint
 app.get('/health', (_req, res) => {

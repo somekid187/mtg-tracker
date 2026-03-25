@@ -11,7 +11,7 @@ CREATE PROCEDURE sp_user_activate(
 proc:BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
         BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while activating the user.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while activating the user.', 'code', 'INTERNAL_SERVER_ERROR');
         END;
 
     UPDATE AppUser
@@ -19,9 +19,9 @@ proc:BEGIN
     WHERE verificationToken = in_verificationToken;
 
     IF ROW_COUNT() = 0 THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Invalid verification token.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Invalid verification token.', 'code', 'INVALID_TOKEN');
         LEAVE proc;
     END IF;
 
-    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'User activated successfully.');
+    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'User activated successfully.', 'code', 'SUCCESS_OK');
 END $$

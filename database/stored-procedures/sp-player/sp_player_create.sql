@@ -23,52 +23,52 @@ proc:
 BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
         BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while creating the player.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while creating the player.', 'code', 'INTERNAL_SERVER_ERROR');
         END;
 
     IF in_startingLife IS NULL THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Starting life cannot be null.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Starting life cannot be null.', 'code', 'VALIDATION_ERROR');
         LEAVE proc;
     END IF;
 
     IF in_placement IS NULL THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Placement cannot be null.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Placement cannot be null.', 'code', 'VALIDATION_ERROR');
         LEAVE proc;
     END IF;
 
     IF in_minPlayers IS NULL THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Minimum players cannot be null.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Minimum players cannot be null.', 'code', 'VALIDATION_ERROR');
         LEAVE proc;
     END IF;
 
     IF in_maxPlayers IS NULL THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Maximum players cannot be null.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Maximum players cannot be null.', 'code', 'VALIDATION_ERROR');
         LEAVE proc;
     END IF;
 
     IF in_fk_match_isPlayedIn IS NULL THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match ID cannot be null.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match ID cannot be null.', 'code', 'VALIDATION_ERROR');
         LEAVE proc;
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM `Match` WHERE pk_match = in_fk_match_isPlayedIn) THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match not found.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match not found.', 'code', 'MATCH_NOT_FOUND');
         LEAVE proc;
     END IF;
 
     IF in_fk_appUser_participates IS NOT NULL AND
        NOT EXISTS (SELECT 1 FROM AppUser WHERE pk_appUser = in_fk_appUser_participates) THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Participating user not found.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Participating user not found.', 'code', 'USER_NOT_FOUND');
         LEAVE proc;
     END IF;
 
     IF in_fk_team_isIncluded IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Team WHERE pk_team = in_fk_team_isIncluded) THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Team not found.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Team not found.', 'code', 'TEAM_NOT_FOUND');
         LEAVE proc;
     END IF;
 
     IF in_fk_guest_enters IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Guest WHERE pk_guest = in_fk_guest_enters) THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Guest not found.');
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Guest not found.', 'code', 'GUEST_NOT_FOUND');
         LEAVE proc;
     END IF;
 
@@ -79,8 +79,7 @@ BEGIN
             in_fk_guest_enters, in_fk_appUser_participates, in_fk_team_isIncluded,
             in_fk_match_isPlayedIn);
 
-    SET out_response =
-            JSON_OBJECT('success', TRUE, 'message', 'Player created successfully.', 'playerId', LAST_INSERT_ID());
+    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Player created successfully.', 'code', 'SUCCESS_CREATED', 'data', JSON_OBJECT('pk_player', LAST_INSERT_ID()));
 
 END $$
 

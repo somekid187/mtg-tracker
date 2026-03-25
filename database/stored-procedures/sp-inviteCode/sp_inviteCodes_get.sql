@@ -13,13 +13,14 @@ BEGIN
     DECLARE offset INT;
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
         BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching invite codes.');
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching invite codes.', 'code', 'INTERNAL_SERVER_ERROR');
         END;
     SET offset = (in_page - 1) * 10;
 
     SELECT JSON_OBJECT(
                    'success', TRUE,
                    'message', 'Invite codes fetched successfully.',
+                   'code', 'SUCCESS_OK',
                    'data', IFNULL(JSON_ARRAYAGG(
                                           JSON_OBJECT(
                                                   'pk_inviteCode', pk_inviteCode,
