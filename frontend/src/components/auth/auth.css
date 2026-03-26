@@ -1,0 +1,123 @@
+.auth-page {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #292b2d;
+  font-family: 'Poppins', sans-serif;
+}
+
+.auth-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2em 1em;
+}
+
+.auth-card {
+  background-color: #313338;
+  border-radius: 20px;
+  padding: 2.5em 3em;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25em;
+}
+
+.auth-title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffd170;
+  text-align: center;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.form-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fefefe;
+}
+
+.form-input {
+  background-color: #292b2d;
+  border: 1px solid #4a4a4a;
+  border-radius: 8px;
+  padding: 0.6em 0.875em;
+  color: #fefefe;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.form-input:focus {
+  border-color: #ffd170;
+}
+
+.btn-primary {
+  margin-top: 0.5em;
+  padding: 0.65em 1.25em;
+  background-color: #ffd170;
+  border-radius: 12px;
+  color: #292b2d;
+  border: none;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  align-self: flex-end;
+}
+
+.btn-primary:hover {
+  background-color: #ffc107;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-message {
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #ff6b6b;
+}
+
+.auth-message.success {
+  color: #6bffb8;
+}
+
+.auth-footer {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #aaaaaa;
+  margin: 0;
+}
+
+.auth-footer a {
+  color: #ffd170;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.auth-footer a:hover {
+  color: #ffc107;
+}

@@ -155,6 +155,34 @@ export async function changePasswordService(req: any) {
   }
 }
 
+export async function getUserStatsService(userId: string) {
+  if (!userId) throw createError("MISSING_FIELDS", "User ID is required");
+  const connection = await pool.getConnection();
+  try {
+    await connection.execute("CALL sp_user_stats_get(?, @out_response)", [userId]);
+    const [rows]: any = await connection.query("SELECT @out_response as result");
+    const result = JSON.parse(rows[0].result);
+    if (!result?.success) throw createError(result?.code || "INTERNAL_SERVER_ERROR", result?.message || "Failed to get stats");
+    return { success: true, data: result.data };
+  } finally {
+    connection.release();
+  }
+}
+
+export async function getUserByUsernameService(username: string) {
+  if (!username) throw createError("MISSING_FIELDS", "Username is required");
+  const connection = await pool.getConnection();
+  try {
+    await connection.execute("CALL sp_user_get_by_username(?, @out_response)", [username]);
+    const [rows]: any = await connection.query("SELECT @out_response as result");
+    const result = JSON.parse(rows[0].result);
+    if (!result?.success) throw createError(result?.code || "USER_NOT_FOUND", result?.message || "User not found");
+    return { success: true, data: result.data };
+  } finally {
+    connection.release();
+  }
+}
+
 function createError(code: string, message: string) {
   const error = Object.create(null);
   error.code = code;

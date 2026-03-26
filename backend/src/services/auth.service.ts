@@ -186,8 +186,8 @@ export async function loginService(req: any) {
     const tokenHash = hashToken(refreshToken.trim());
 
     // Get client IP and device info
-    const clientIp = req.ip || req.connection?.remoteAddress || "unknown";
-    const deviceName = req.headers["user-agent"] || "unknown";
+    const clientIp = (req.ip || req.connection?.remoteAddress || "unknown").substring(0, 255);
+    const deviceName = (req.headers["user-agent"] || "unknown").substring(0, 255);
 
     // Calculate expiration date (7 days from now)
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days in milliseconds
@@ -278,8 +278,8 @@ export async function refreshService(req: any) {
 
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days in milliseconds
 
-    const device = req.headers["user-agent"] || "unknown";
-    const ip = req.ip || req.connection?.remoteAddress || "unknown";
+    const device = (req.headers["user-agent"] || "unknown").substring(0, 255);
+    const ip = (req.ip || req.connection?.remoteAddress || "unknown").substring(0, 255);
 
     // Rotate the refresh token using the same stored procedure pattern
     await connection.execute(
@@ -302,6 +302,10 @@ export async function refreshService(req: any) {
     const tokenResult = JSON.parse(tokenRows[0].result);
     
     if (!tokenResult || !tokenResult.success) {
+      if (tokenResult?.code === 'TOKEN_ALREADY_ROTATED') {
+        // A concurrent request already rotated this token — treat as revoked so the client re-auths
+        throw createError('TOKEN_REVOKED', 'Refresh token has already been rotated by another request.');
+      }
       throw createError(tokenResult?.code || "TOKEN_CREATION_FAILED", tokenResult?.message 
         || "Failed to create refresh token");
     }

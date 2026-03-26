@@ -17,8 +17,19 @@ const app = express();
 app.use(helmet());
 
 // CORS Middleware
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
-console.log(`CORS configured to allow requests from: ${process.env.FRONTEND_URL}`);
+const allowedOrigins = (process.env.FRONTEND_URL ?? '').split(',').map(o => o.trim()).filter(Boolean);
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. curl, mobile apps)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin '${origin}' not allowed`));
+    }
+  },
+  credentials: true
+}));
+console.log(`CORS configured to allow requests from: ${allowedOrigins.join(', ')}`);
 
 // Body Parsing
 app.use(express.json());

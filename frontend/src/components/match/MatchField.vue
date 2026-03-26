@@ -75,26 +75,35 @@
       </div>
 
       <div class="match-footer">
-        <template v-if="matchEnded && results.length">
-          <div class="results-panel">
-            <h3>Final Results</h3>
-            <ol>
-              <li v-for="p in results" :key="p.id">
-                {{ p.placement }}. {{ p.name }} — {{ p.finalLife }} life
-                <span v-if="p.isWinner">🏆</span>
-              </li>
-            </ol>
-            <p v-if="endError" class="error">{{ endError }}</p>
-            <button class="btn-back" @click="goBack">Back to Lobby</button>
-          </div>
-        </template>
-        <template v-else>
-          <button v-if="!matchEnded" class="btn-end" @click="endMatch" :disabled="ending">
-            {{ ending ? 'Saving...' : 'End Match' }}
-          </button>
-          <button class="btn-back" @click="goBack">Back</button>
-        </template>
+        <button v-if="!matchEnded" class="btn-end" @click="endMatch" :disabled="ending">
+          {{ ending ? 'Saving...' : 'End Match' }}
+        </button>
+        <button class="btn-back" @click="goBack">Back</button>
       </div>
+
+      <!-- Final Results Modal -->
+      <Teleport to="body">
+        <div v-if="matchEnded && results.length" class="results-overlay">
+          <div class="results-modal">
+            <h2 class="results-title">Match Over</h2>
+            <ul class="results-list">
+              <li
+                v-for="p in results"
+                :key="p.id"
+                class="results-item"
+                :class="{ winner: p.isWinner }"
+              >
+                <span class="result-placement">{{ p.placement }}</span>
+                <span class="result-name">{{ p.name }}</span>
+                <span class="result-life">{{ p.finalLife }} life</span>
+                <span v-if="p.isWinner" class="result-trophy">🏆</span>
+              </li>
+            </ul>
+            <p v-if="endError" class="error">{{ endError }}</p>
+            <button class="btn-lobby" @click="goBack">Back to Lobby</button>
+          </div>
+        </div>
+      </Teleport>
     </div>
   </div>
 </template>
@@ -102,6 +111,7 @@
 <script>
 import { useRouter, useRoute } from 'vue-router'
 import { playerService } from '../../services/player.service'
+import { matchService } from '../../services/match.service'
 import Sidebar from '../shared/Sidebar.vue'
 
 export default {
@@ -134,7 +144,7 @@ export default {
       ]
     },
   },
-  created() {
+  async created() {
     const matchId = this.$route.params.id
     const stored = localStorage.getItem(`match_${matchId}`)
     if (stored) {
@@ -146,6 +156,57 @@ export default {
           currentLife: p.currentLife ?? p.startingLife,
         })),
       }
+      return
+    }
+
+    // No localStorage — fetch from API and reconstruct matchData
+    try {
+      const res = await matchService.getMatchById(Number(matchId))
+      const match = res.data
+      const apiPlayers = match.players ?? []
+
+      const hasPoison = apiPlayers.some((p) => p.poisonCounter != null)
+      const hasTax = apiPlayers.some((p) => p.tax != null)
+      const hasCommanderDamage = match.commanderThreshold != null
+
+      const playerCount = apiPlayers.length
+      const players = apiPlayers.map((p, index) => ({
+        id: index + 1,
+        pk_player: p.pk_player,
+        userId: p.fk_appUser_participates ?? null,
+        guestId: p.fk_guest_enters ?? null,
+        name: p.userName || p.guestName || `Player ${index + 1}`,
+        startingLife: p.startingLife,
+        currentLife: p.startingLife,
+        finalLife: null,
+        isWinner: false,
+        placement: null,
+        tax: hasTax ? (p.tax ?? 0) : null,
+        poisonCounter: hasPoison ? (p.poisonCounter ?? 0) : null,
+        commanderDamage: hasCommanderDamage
+          ? Object.fromEntries(
+              Array.from({ length: playerCount }, (_, j) => j + 1)
+                .filter((id) => id !== index + 1)
+                .map((id) => [id, 0])
+            )
+          : null,
+      }))
+
+      this.matchData = {
+        pk_match: match.pk_match,
+        name: match.name,
+        format: match.format,
+        startingLife: match.startingLife,
+        isTeamMatch: match.isTeamMatch,
+        commanderThreshold: match.commanderThreshold,
+        counterThreshold: match.counterThreshold,
+        hasCommanderDamage,
+        hasPoison,
+        hasTax,
+        players,
+      }
+    } catch {
+      // matchData stays null — template shows nothing
     }
   },
   methods: {
@@ -567,23 +628,105 @@ export default {
   background: #595d63;
 }
 
-.results-panel {
-  text-align: center;
+.results-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.results-modal {
+  background: #313338;
+  border-radius: 20px;
+  padding: 2.5em 3em;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25em;
+  font-family: 'Poppins', sans-serif;
   color: #fefefe;
 }
 
-.results-panel h3 {
-  margin: 0 0 0.5em;
+.results-title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
   color: #ffd170;
+  text-align: center;
 }
 
-.results-panel ol {
-  padding-left: 1.5em;
-  margin: 0 0 1em;
+.results-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6em;
 }
 
-.results-panel li {
-  margin: 0.3em 0;
+.results-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  background: #292b2d;
+  border-radius: 12px;
+  padding: 0.75em 1em;
+  border: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.results-item.winner {
+  border-color: #ffd170;
+  background: #2e2c1e;
+}
+
+.result-placement {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffd170;
+  min-width: 1.5em;
+  text-align: center;
+}
+
+.result-name {
+  flex: 1;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.result-life {
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.result-trophy {
+  font-size: 1.3rem;
+}
+
+.btn-lobby {
+  margin-top: 0.5em;
+  padding: 0.65em 2em;
+  background-color: #ffd170;
+  border-radius: 12px;
+  color: #292b2d;
+  border: none;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-lobby:hover {
+  background-color: #ffc107;
 }
 
 .error {

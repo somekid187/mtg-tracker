@@ -32,12 +32,16 @@ function getSmtpConfig() {
   return { host, port, user, pass, from, secure };
 }
 
+function getPrimaryFrontendUrl(): string | undefined {
+  const raw = process.env.FRONTEND_URL;
+  if (!raw) return undefined;
+  return raw.split(',')[0].trim().replace(/\/$/, '');
+}
+
 function buildFrontendUrl(pathname: string, token: string) {
-  const frontendUrl = process.env.FRONTEND_URL;
+  const frontendUrl = getPrimaryFrontendUrl();
   if (!frontendUrl) return undefined;
-  return `${frontendUrl.replace(/\/$/, "")}${pathname}?token=${encodeURIComponent(
-    token,
-  )}`;
+  return `${frontendUrl}${pathname}?token=${encodeURIComponent(token)}`;
 }
 
 export async function sendActivationEmail(params: SendActivationEmailParams) {

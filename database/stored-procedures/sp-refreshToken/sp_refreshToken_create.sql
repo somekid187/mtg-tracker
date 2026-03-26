@@ -62,6 +62,21 @@ BEGIN
           AND revokedAt IS NULL;
     END IF;
 
+    -- Guard against concurrent rotation: if this source token was already used, return a clean error
+    IF in_fk_rotatedFrom IS NOT NULL THEN
+        IF EXISTS (
+            SELECT 1 FROM RefreshToken WHERE fk_refreshToken_rotatedFrom = in_fk_rotatedFrom
+        ) THEN
+            ROLLBACK;
+            SET out_response = JSON_OBJECT(
+                'success', FALSE,
+                'message', 'This token has already been rotated by a concurrent request.',
+                'code',    'TOKEN_ALREADY_ROTATED'
+            );
+            LEAVE proc;
+        END IF;
+    END IF;
+
     -- Insert the new token
     INSERT INTO RefreshToken (
         tokenHash,

@@ -48,7 +48,9 @@
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_delete.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_get_by_email.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_get_by_id.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_get_by_username.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_get_password.sql" dialect="MySQL" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_stats_get.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_update.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_users_get.sql" dialect="MySQL" />
     <file url="file://$PROJECT_DIR$/tests/user_test.sql" dialect="MySQL" />

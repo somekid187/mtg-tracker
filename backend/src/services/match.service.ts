@@ -11,7 +11,7 @@ function createError(code: string, message: string) {
 
 const DB_FORMATS = [
   "Standard", "Modern", "Legacy", "Vintage", "Pioneer",
-  "Pauper", "Draft", "Sealed", "Brawl", "Two-Headed Giant", "Commander"
+  "Pauper", "Draft", "Sealed", "Brawl", "Two-Headed Giant", "Commander", "Custom"
 ];
 
 export async function createMatchService(req: any) {
@@ -186,12 +186,12 @@ export async function updateMatchService(matchId: string, body: any) {
   }
 }
 
-export async function deleteMatchService(matchId: string) {
+export async function deleteMatchService(matchId: string, userId: string) {
   if (!matchId) throw createError("MISSING_FIELDS", "Match ID is required");
 
   const connection = await pool.getConnection();
   try {
-    await connection.execute("CALL sp_match_delete(?, @out_response)", [matchId]);
+    await connection.execute("CALL sp_match_delete(?, ?, @out_response)", [matchId, userId]);
     const [rows]: any = await connection.query("SELECT @out_response as result");
     const result = JSON.parse(rows[0].result);
     if (!result?.success) throw createError(result?.code || "MATCH_DELETE_FAILED", result?.message || "Failed to delete match");
@@ -221,7 +221,7 @@ export async function sendMatchInviteService(req: any) {
     );
     if (!codeRows || codeRows.length === 0) throw createError("INVITE_NOT_FOUND", "Invite code not found for this match");
 
-    const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+    const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").split(',')[0].trim().replace(/\/$/, "");
     const joinUrl = `${frontendUrl}/match/join?code=${encodeURIComponent(inviteCode)}`;
 
     await sendMatchInviteEmail({

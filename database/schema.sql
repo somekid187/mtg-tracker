@@ -57,7 +57,7 @@ CREATE TABLE `Match`
     format             ENUM (
         'Standard','Modern','Legacy','Vintage',
         'Pioneer','Pauper','Draft','Sealed',
-        'Brawl','Two-Headed Giant','Commander'
+        'Brawl','Two-Headed Giant','Commander','Custom'
         )                      NOT NULL,
     startingLife       INT     NOT NULL,
     startTime          TIME    NOT NULL,

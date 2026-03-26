@@ -25,7 +25,7 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 2em;
+  padding: .5em 2em;
   background-color: #292b2d;
   color: #ffd170;
   font-family: 'Poppins', sans-serif;
@@ -39,16 +39,18 @@
 }
 
 .nav-links button {
-  background: none;
+  background: #ffd170;
+  border-radius: 12px;
   border: none;
-  color: #ffd170;
+  color: #292b2d;
+  text-decoration: none;
+  padding: .5em 1em;
   font-weight: 600;
-  cursor: pointer;
   transition: color 0.3s ease;
 }
 
 .nav-links button:hover {
-  color: #ffc107;
+  background-color: #ffc107;
 }
 
 .header img {
@@ -60,6 +62,8 @@
   display: flex;
   align-items: center;
   gap: 0.5em;
+  width: 250px;
+  height: 60px;
 }
 
 .app-name {
@@ -69,10 +73,18 @@
 }
 
 .nav-links a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #ffd170;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.3s ease;
+}
+
+.nav-links a, .nav-links button {
+  font-family: 'Poppins', sans-serif;
+  font-size: 1rem;
 }
 
 .nav-links a:hover {
@@ -109,6 +121,7 @@
 .sidebar {
   position: relative;
   width: 9.375em;
+  flex-shrink: 0;
   background-color: #212121;
   display: flex;
   flex-direction: column;

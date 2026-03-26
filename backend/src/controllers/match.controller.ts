@@ -44,7 +44,8 @@ export async function updateMatch(req: any, res: any) {
 }
 
 export async function deleteMatch(req: any, res: any) {
-  const result = await deleteMatchService(req.params.id);
+  const userId = req.user.userId;
+  const result = await deleteMatchService(req.params.id, userId);
   res
     .status(200)
     .json({ message: "Match deleted successfully", data: result.data });

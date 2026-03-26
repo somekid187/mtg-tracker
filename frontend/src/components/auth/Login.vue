@@ -1,23 +1,32 @@
 <template>
-  <div>
-    <h2>Login</h2>
-    <form @submit.prevent="onSubmit">
-      <label>Email:</label>
-      <input type="email" v-model="email">
-
-      <label>Password:</label>
-      <input type="password" v-model="password">
-
-      <button type="submit">Login</button>
-    </form>
-    <p>Don't have an account? <router-link to="/register">Register here</router-link>.</p>
+  <div class="auth-page">
+    <Header />
+    <div class="auth-body">
+      <div class="auth-card">
+      <h2 class="auth-title">Login</h2>
+      <form class="auth-form" @submit.prevent="onSubmit">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" type="email" v-model="email" placeholder="your@email.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-input" type="password" v-model="password" placeholder="••••••••" required>
+        </div>
+        <button class="btn-primary" type="submit">Login</button>
+      </form>
+      <p class="auth-footer">Don't have an account? <router-link to="/register">Register here</router-link>.</p>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 import authService from '../../services/auth.service';
+import Header from '../shared/Header.vue';
 
 export default {
+  components: { Header },
   data() {
     return {
       email: '',
@@ -39,3 +48,5 @@ export default {
   }
 };
 </script>
+
+<style scoped src="./auth.css"></style>

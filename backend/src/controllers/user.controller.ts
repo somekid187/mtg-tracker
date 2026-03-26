@@ -3,6 +3,7 @@ import {
   changePasswordService, requestPasswordResetService,
   sendFriendRequestService, acceptFriendRequestService, rejectFriendRequestService,
   removeFriendService, getFriendsService, getFriendRequestsService,
+  getUserByUsernameService, getUserStatsService,
 } from "../services/user.service";
 
 export async function getUserProfile(req: any, res: any) {
@@ -31,6 +32,18 @@ export async function changePassword(req: any, res: any) {
 export async function requestPasswordReset(req:any, res:any) {
     const result = await requestPasswordResetService(req);
     res.status(200).json({ message: "Password reset requested successfully"});
+}
+
+export async function getUserStats(req: any, res: any) {
+    const userId = req.user.userId;
+    const result = await getUserStatsService(userId);
+    res.status(200).json({ message: "Stats retrieved successfully", data: result.data });
+}
+
+export async function searchUser(req: any, res: any) {
+    const { username } = req.query;
+    const result = await getUserByUsernameService(username as string);
+    res.status(200).json({ message: "User found", data: result.data });
 }
 
 export async function sendFriendRequest(req: any, res: any) {

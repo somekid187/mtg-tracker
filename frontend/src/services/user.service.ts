@@ -1,6 +1,14 @@
 import api from './http.service'
 
 export const userService = {
+  getStats() {
+    return api.get('/user/stats').then((r: any) => r.data)
+  },
+
+  searchUser(username: string) {
+    return api.get('/user/search', { params: { username } }).then((r: any) => r.data)
+  },
+
   getFriends() {
     return api.get('/user/friends').then((r: any) => r.data)
   },

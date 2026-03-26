@@ -43,6 +43,7 @@
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_get_by_email.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_get_by_id.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_get_password.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
+    <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_stats_get.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_user_update.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
     <file url="file://$PROJECT_DIR$/stored-procedures/sp-user/sp_users_get.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />
     <file url="file://$PROJECT_DIR$/tests/user_test.sql" value="adda4738-b94a-400b-bb9e-7b67734d260a" />

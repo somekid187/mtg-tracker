@@ -8,6 +8,7 @@
     <div class="nav-links">
       <RouterLink to="/login" v-if="!isAuthenticated">Login</RouterLink>
       <RouterLink to="/register" v-if="!isAuthenticated">Register</RouterLink>
+      <RouterLink to="/dashboard" v-if="isAuthenticated">Dashboard</RouterLink>
       <button @click="handleLogout" v-if="isAuthenticated">Logout</button>
     </div>
   </nav>
