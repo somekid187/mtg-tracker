@@ -75,16 +75,28 @@
       </div>
 
       <div class="match-footer">
-        <button v-if="!matchEnded" class="btn-end" @click="endMatch" :disabled="ending">
-          {{ ending ? 'Saving...' : 'End Match' }}
-        </button>
-        <button class="btn-back" @click="goBack">Back</button>
+        <div class="footer-tools">
+          <button class="btn-tool" @click="openRandomModal('player')" title="Random Player">
+            👤<span class="btn-tool-label">Player</span>
+          </button>
+          <button class="btn-tool" @click="openRandomModal('coin')" title="Coin Flip">
+            🪙<span class="btn-tool-label">Coin</span>
+          </button>
+          <button class="btn-tool" @click="openRandomModal('dice')" title="Roll Dice">
+            🎲<span class="btn-tool-label">Dice</span>
+          </button>
+        </div>
+        <div class="footer-actions">
+          <button v-if="!matchEnded" class="btn-end" @click="endMatch" :disabled="ending">
+            {{ ending ? 'Saving...' : 'End Match' }}
+          </button>
+          <button class="btn-back" @click="goBack">Back</button>
+        </div>
       </div>
 
       <!-- Commander Damage Modal -->
       <Teleport to="body">
-        <div v-if="cdmgModal" class="cdmg-overlay" @click.self="closeCdmgModal">
-          <div class="cdmg-modal">
+        <div v-if="cdmgModal" class="cdmg-overlay" @click.self="closeCdmgModal">          <div class="cdmg-modal">
             <button class="cdmg-modal-close" @click="closeCdmgModal">✕</button>
             <span class="cdmg-modal-sub">Damage dealt by</span>
             <span class="cdmg-modal-dealer">{{ getPlayerName(cdmgModal.dealerId) }}</span>
@@ -98,6 +110,66 @@
               <button class="cdmg-modal-btn" @click="adjustCommanderDamage(cdmgModal.receiver, cdmgModal.dealerId, 1)">+</button>
             </div>
             <span v-if="cdmgModal.receiver.commanderDamage[cdmgModal.dealerId] >= 21" class="cdmg-modal-lethal-warn">⚔ Lethal!</span>
+          </div>
+        </div>
+      </Teleport>
+
+      <!-- Random Tools Modal -->
+      <Teleport to="body">
+        <div v-if="randomModal" class="random-overlay" @click.self="closeRandomModal">
+          <div class="random-modal">
+            <button class="random-modal-close" @click="closeRandomModal">✕</button>
+
+            <!-- Coin Flip -->
+            <template v-if="randomModal.type === 'coin'">
+              <span class="random-modal-title">🪙 Coin Flip</span>
+              <div class="random-result">
+                <span v-if="randomModal.result" class="random-value" :class="randomModal.result.toLowerCase()">{{ randomModal.result }}</span>
+                <span v-else class="random-placeholder">?</span>
+              </div>
+              <button class="btn-roll" @click="rollCoin">Flip!</button>
+            </template>
+
+            <!-- Dice Roll -->
+            <template v-else-if="randomModal.type === 'dice'">
+              <span class="random-modal-title">🎲 Roll Dice</span>
+              <div class="dice-sides-picker">
+                <button
+                  v-for="s in [4, 6, 8, 10, 12, 20, 100]"
+                  :key="s"
+                  class="btn-sides"
+                  :class="{ active: randomModal.diceSides === s }"
+                  @click="randomModal.diceSides = s; randomModal.result = null"
+                >d{{ s }}</button>
+              </div>
+              <div class="custom-sides">
+                <label class="custom-sides-label">Custom</label>
+                <input
+                  class="custom-sides-input"
+                  type="number"
+                  min="2"
+                  max="1000"
+                  v-model.number="randomModal.diceSides"
+                  @input="randomModal.result = null"
+                />
+              </div>
+              <div class="random-result">
+                <span v-if="randomModal.result" class="random-value">{{ randomModal.result }}</span>
+                <span v-else class="random-placeholder">?</span>
+              </div>
+              <button class="btn-roll" @click="rollDice">Roll d{{ randomModal.diceSides }}!</button>
+            </template>
+
+            <!-- Random Player -->
+            <template v-else-if="randomModal.type === 'player'">
+              <span class="random-modal-title">👤 Random Player</span>
+              <div class="random-result">
+                <span v-if="randomModal.result" class="random-value random-player-name">{{ randomModal.result }}</span>
+                <span v-else class="random-placeholder">?</span>
+              </div>
+              <button class="btn-roll" @click="pickRandomPlayer">Pick!</button>
+              <span class="random-note">Picks from players still in the game</span>
+            </template>
           </div>
         </div>
       </Teleport>
@@ -156,6 +228,7 @@ export default {
       autoSaveTimer: null,
       cdmgRecordIds: {},
       cdmgModal: null,
+      randomModal: null,
     }
   },
   mounted() {
@@ -241,8 +314,25 @@ export default {
     }
   },
   methods: {
-    openCdmgModal(receiver, dealerId) {
-      if (this.matchEnded) return
+    openRandomModal(type) {
+      this.randomModal = { type, result: null, diceSides: 20 }
+    },
+    closeRandomModal() {
+      this.randomModal = null
+    },
+    rollCoin() {
+      this.randomModal.result = Math.random() < 0.5 ? 'Heads' : 'Tails'
+    },
+    rollDice() {
+      const sides = Math.max(2, parseInt(this.randomModal.diceSides) || 6)
+      this.randomModal.result = Math.floor(Math.random() * sides) + 1
+    },
+    pickRandomPlayer() {
+      const alive = this.matchData.players.filter((p) => !this.isEliminated(p))
+      const pool = alive.length > 0 ? alive : this.matchData.players
+      this.randomModal.result = pool[Math.floor(Math.random() * pool.length)].name
+    },
+    openCdmgModal(receiver, dealerId) {      if (this.matchEnded) return
       this.cdmgModal = { receiver, dealerId: String(dealerId) }
     },
     closeCdmgModal() {
@@ -678,10 +768,52 @@ export default {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 1em;
   padding: 0.75em 1em;
   background: #212121;
+}
+
+.footer-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.btn-tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15em;
+  background: #414247;
+  border: 1px solid #595d63;
+  color: #fefefe;
+  border-radius: 10px;
+  padding: 0.45em 0.85em;
+  cursor: pointer;
+  font-size: 1.3rem;
+  font-family: 'Poppins', sans-serif;
+  transition: background 0.2s, border-color 0.2s;
+  line-height: 1;
+}
+
+.btn-tool:hover {
+  background: #595d63;
+  border-color: #ffd170;
+}
+
+.btn-tool-label {
+  font-size: 0.6rem;
+  color: #bbb;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 1em;
 }
 
 .btn-end {
@@ -944,5 +1076,174 @@ export default {
   font-weight: 700;
   color: #ff6b6b;
   margin-top: 0.25em;
+}
+
+/* Random Tools Modal */
+.random-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 950;
+  backdrop-filter: blur(4px);
+}
+
+.random-modal {
+  background: #313338;
+  border-radius: 20px;
+  padding: 2em 2.5em;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1em;
+  font-family: 'Poppins', sans-serif;
+  color: #fefefe;
+  position: relative;
+}
+
+.random-modal-close {
+  position: absolute;
+  top: 0.75em;
+  right: 0.9em;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.1rem;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  transition: color 0.2s;
+}
+.random-modal-close:hover { color: #fefefe; }
+
+.random-modal-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #ffd170;
+  margin-top: 0.25em;
+}
+
+.random-result {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: #292b2d;
+  border: 3px solid #595d63;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.random-placeholder {
+  font-size: 3rem;
+  opacity: 0.3;
+}
+
+.random-value {
+  font-size: 3rem;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.random-value.heads {
+  color: #ffd170;
+}
+
+.random-value.tails {
+  color: #a78bfa;
+}
+
+.random-player-name {
+  font-size: 1.5rem;
+  color: #ffd170;
+  padding: 0 0.5em;
+  word-break: break-word;
+  text-align: center;
+}
+
+.dice-sides-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+  justify-content: center;
+}
+
+.btn-sides {
+  background: #414247;
+  border: 2px solid transparent;
+  color: #fefefe;
+  border-radius: 8px;
+  padding: 0.3em 0.65em;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-sides:hover {
+  background: #595d63;
+}
+
+.btn-sides.active {
+  border-color: #ffd170;
+  color: #ffd170;
+  background: #2e2c1e;
+}
+
+.custom-sides {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.custom-sides-label {
+  font-size: 0.85rem;
+  color: #bbb;
+}
+
+.custom-sides-input {
+  width: 70px;
+  background: #292b2d;
+  border: 1px solid #595d63;
+  color: #fefefe;
+  border-radius: 8px;
+  padding: 0.3em 0.5em;
+  font-size: 1rem;
+  font-family: 'Poppins', sans-serif;
+  text-align: center;
+}
+
+.custom-sides-input:focus {
+  outline: none;
+  border-color: #ffd170;
+}
+
+.btn-roll {
+  background: #ffd170;
+  color: #292b2d;
+  border: none;
+  padding: 0.65em 2em;
+  cursor: pointer;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  font-family: 'Poppins', sans-serif;
+  transition: background 0.2s;
+}
+
+.btn-roll:hover {
+  background: #ffc107;
+}
+
+.random-note {
+  font-size: 0.75rem;
+  color: #888;
+  text-align: center;
 }
 </style>
