@@ -12,7 +12,7 @@
             v-for="player in row.players"
             :key="player.id"
             class="player-card"
-            :class="{ flipped: row.flipped, eliminated: player.currentLife <= 0 }"
+            :class="{ flipped: row.flipped, eliminated: isEliminated(player) }"
           >
             <div class="card-info">
               <div class="card-counters">
@@ -35,7 +35,7 @@
               </div>
               <div class="card-identity">
                 <div class="avatar-circle">
-                  <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="44" height="44">
                     <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
                   </svg>
                 </div>
@@ -62,7 +62,7 @@
                   v-for="(amount, dealerId) in player.commanderDamage"
                   :key="dealerId"
                   class="cdmg-badge"
-                  @click="adjustCommanderDamage(player, dealerId, 1)"
+                  @click="openCdmgModal(player, dealerId)"
                   :class="{ lethal: amount >= 21 }"
                   :disabled="matchEnded"
                 >
@@ -80,6 +80,27 @@
         </button>
         <button class="btn-back" @click="goBack">Back</button>
       </div>
+
+      <!-- Commander Damage Modal -->
+      <Teleport to="body">
+        <div v-if="cdmgModal" class="cdmg-overlay" @click.self="closeCdmgModal">
+          <div class="cdmg-modal">
+            <button class="cdmg-modal-close" @click="closeCdmgModal">✕</button>
+            <span class="cdmg-modal-sub">Damage dealt by</span>
+            <span class="cdmg-modal-dealer">{{ getPlayerName(cdmgModal.dealerId) }}</span>
+            <span class="cdmg-modal-arrow">↓</span>
+            <span class="cdmg-modal-receiver">{{ cdmgModal.receiver.name }}</span>
+            <div class="cdmg-modal-controls">
+              <button class="cdmg-modal-btn" @click="adjustCommanderDamage(cdmgModal.receiver, cdmgModal.dealerId, -1)">−</button>
+              <span class="cdmg-modal-value" :class="{ 'cdmg-lethal': cdmgModal.receiver.commanderDamage[cdmgModal.dealerId] >= 21 }">
+                {{ cdmgModal.receiver.commanderDamage[cdmgModal.dealerId] }}
+              </span>
+              <button class="cdmg-modal-btn" @click="adjustCommanderDamage(cdmgModal.receiver, cdmgModal.dealerId, 1)">+</button>
+            </div>
+            <span v-if="cdmgModal.receiver.commanderDamage[cdmgModal.dealerId] >= 21" class="cdmg-modal-lethal-warn">⚔ Lethal!</span>
+          </div>
+        </div>
+      </Teleport>
 
       <!-- Final Results Modal -->
       <Teleport to="body">
@@ -113,6 +134,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { playerService } from '../../services/player.service'
 import { matchService } from '../../services/match.service'
 import Sidebar from '../shared/Sidebar.vue'
+import { commanderDamageService } from '../../services/commanderDamage.service'
 
 export default {
   components: {
@@ -131,7 +153,16 @@ export default {
       endError: '',
       results: [],
       sidebarOpen: true,
+      autoSaveTimer: null,
+      cdmgRecordIds: {},
+      cdmgModal: null,
     }
+  },
+  mounted() {
+    this.autoSaveTimer = setInterval(this.autoSave, 2000)
+  },
+  beforeUnmount() {
+    if (this.autoSaveTimer) clearInterval(this.autoSaveTimer)
   },
   computed: {
     playerRows() {
@@ -210,14 +241,25 @@ export default {
     }
   },
   methods: {
+    openCdmgModal(receiver, dealerId) {
+      if (this.matchEnded) return
+      this.cdmgModal = { receiver, dealerId: String(dealerId) }
+    },
+    closeCdmgModal() {
+      this.cdmgModal = null
+    },
+    isEliminated(player) {
+      if (player.currentLife <= 0) return true
+      if (player.poisonCounter != null && player.poisonCounter >= 10) return true
+      if (player.commanderDamage && Object.values(player.commanderDamage).some((v) => v >= 21)) return true
+      return false
+    },
     adjust(player, field, delta) {
       player[field] = Math.max(0, player[field] + delta)
     },
     adjustPoison(player, delta) {
-      const prev = player.poisonCounter
-      player.poisonCounter = Math.max(0, prev + delta)
-      const applied = player.poisonCounter - prev
-      player.currentLife = Math.max(0, player.currentLife - applied)
+      player.poisonCounter = Math.max(0, player.poisonCounter + delta)
+      if (player.poisonCounter < 0) player.poisonCounter = 0
     },
     adjustCommanderDamage(player, dealerId, delta) {
       const prev = player.commanderDamage[dealerId]
@@ -261,6 +303,10 @@ export default {
         })
         await Promise.all(updates)
 
+        // Set endTime on the match
+        const endTime = new Date().toTimeString().slice(0, 8)
+        await matchService.updateMatch(this.matchData.pk_match, { endTime })
+
         this.results = withPlacements
         this.matchEnded = true
         localStorage.removeItem(`match_${this.$route.params.id}`)
@@ -271,8 +317,55 @@ export default {
         this.ending = false
       }
     },
+    async autoSave() {
+      if (!this.matchData?.players || this.matchEnded) return
+      try {
+        const playerUpdates = this.matchData.players.map((p) => {
+          if (!p.pk_player) return Promise.resolve()
+          return playerService.updatePlayer(p.pk_player, {
+            finalLife: p.currentLife,
+            poisonCounter: p.poisonCounter ?? undefined,
+            tax: p.tax ?? undefined,
+          }).catch(() => {})
+        })
+
+        const cdmgUpdates = []
+        if (this.matchData.hasCommanderDamage) {
+          for (const receiver of this.matchData.players) {
+            if (!receiver.commanderDamage || !receiver.pk_player) continue
+            for (const [dealerId, amount] of Object.entries(receiver.commanderDamage)) {
+              const dealer = this.matchData.players.find((p) => p.id === parseInt(dealerId))
+              if (!dealer?.pk_player) continue
+              const key = `${dealer.pk_player}_${receiver.pk_player}`
+              const existingId = this.cdmgRecordIds[key]
+              const isLethal = amount >= (this.matchData.commanderThreshold ?? 21)
+              if (existingId) {
+                cdmgUpdates.push(
+                  commanderDamageService.updateCommanderDamage(existingId, { damageAmount: amount, isLethal }).catch(() => {})
+                )
+              } else if (amount > 0) {
+                cdmgUpdates.push(
+                  commanderDamageService.createCommanderDamage({
+                    damageAmount: amount,
+                    isLethal,
+                    fk_player_deals: dealer.pk_player,
+                    fk_player_receives: receiver.pk_player,
+                    fk_match_refersTo: this.matchData.pk_match,
+                  }).then((res) => {
+                    const id = res?.data?.pk_commanderDamage
+                    if (id) this.cdmgRecordIds[key] = id
+                  }).catch(() => {})
+                )
+              }
+            }
+          }
+        }
+
+        await Promise.all([...playerUpdates, ...cdmgUpdates])
+      } catch {}
+    },
     goBack() {
-      localStorage.removeItem(`match_${this.$route.params.id}`)
+      // Just navigate away — localStorage is preserved so the match can be resumed
       this.router.push('/match')
     },
   },
@@ -331,15 +424,15 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 0.5em;
-  gap: 0.5em;
+  padding: 0.75em;
+  gap: 0.75em;
   overflow: hidden;
 }
 
 .players-row {
   flex: 1;
   display: flex;
-  gap: 0.5em;
+  gap: 0.75em;
   overflow: hidden;
 }
 
@@ -371,8 +464,8 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 0.6em 0.75em;
-  gap: 0.5em;
+  padding: 0.9em 1em;
+  gap: 0.75em;
 }
 
 .card-counters {
@@ -388,7 +481,7 @@ export default {
 }
 
 .counter-val {
-  font-size: 1.1rem;
+  font-size: 1.5rem;
   font-weight: 700;
   line-height: 1.1;
 }
@@ -400,11 +493,11 @@ export default {
 .counter-ctrl {
   display: flex;
   align-items: center;
-  gap: 0.3em;
+  gap: 0.4em;
 }
 
 .counter-name {
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   color: #bbb;
   min-width: 2.5em;
   text-align: center;
@@ -414,10 +507,10 @@ export default {
   background: #414247;
   border: none;
   color: #fefefe;
-  border-radius: 4px;
-  width: 20px;
-  height: 20px;
-  font-size: 0.85rem;
+  border-radius: 6px;
+  width: 36px;
+  height: 36px;
+  font-size: 1.1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -444,8 +537,8 @@ export default {
 }
 
 .avatar-circle {
-  width: 48px;
-  height: 48px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   background: #414247;
   border: 2px solid #595d63;
@@ -456,7 +549,7 @@ export default {
 }
 
 .player-name {
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 700;
   text-align: center;
   word-break: break-word;
@@ -469,14 +562,14 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0.4em;
+  padding: 0.6em;
   border-top: 1px solid #414247;
   border-bottom: 1px solid #414247;
-  gap: 0.2em;
+  gap: 0.4em;
 }
 
 .life-label {
-  font-size: 0.8rem;
+  font-size: 1rem;
   color: #bbb;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -485,17 +578,17 @@ export default {
 .life-controls {
   display: flex;
   align-items: center;
-  gap: 0.6em;
+  gap: 1em;
 }
 
 .btn-life {
   background: #414247;
   border: none;
   color: #fefefe;
-  border-radius: 8px;
-  width: 36px;
-  height: 36px;
-  font-size: 1.3rem;
+  border-radius: 12px;
+  width: 64px;
+  height: 64px;
+  font-size: 2rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -515,9 +608,9 @@ export default {
 }
 
 .life-value {
-  font-size: 2.5rem;
+  font-size: 5rem;
   font-weight: 800;
-  min-width: 3rem;
+  min-width: 3.5rem;
   text-align: center;
   line-height: 1;
 }
@@ -527,20 +620,20 @@ export default {
 }
 
 .cdmg-summary {
-  font-size: 0.72rem;
+  font-size: 0.9rem;
   color: #bbb;
 }
 
 /* Commander Damage section */
 .card-cdmg {
-  padding: 0.4em 0.75em;
+  padding: 0.6em 1em;
   display: flex;
   flex-direction: column;
-  gap: 0.3em;
+  gap: 0.4em;
 }
 
 .cdmg-label {
-  font-size: 0.68rem;
+  font-size: 0.85rem;
   color: #bbb;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -549,16 +642,16 @@ export default {
 .cdmg-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3em;
+  gap: 0.5em;
 }
 
 .cdmg-badge {
   background: #414247;
   border: 1px solid #595d63;
   color: #fefefe;
-  border-radius: 6px;
-  padding: 0.2em 0.5em;
-  font-size: 0.7rem;
+  border-radius: 8px;
+  padding: 0.4em 0.85em;
+  font-size: 0.95rem;
   cursor: pointer;
   font-family: 'Poppins', sans-serif;
   transition: background 0.2s, color 0.2s;
@@ -587,7 +680,7 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 1em;
-  padding: 0.5em 1em;
+  padding: 0.75em 1em;
   background: #212121;
 }
 
@@ -595,10 +688,11 @@ export default {
   background: #c0392b;
   color: white;
   border: none;
-  padding: 0.5em 1.5em;
+  padding: 0.75em 2em;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: 600;
+  font-size: 1.1rem;
   font-family: 'Poppins', sans-serif;
   transition: background 0.2s;
 }
@@ -616,10 +710,11 @@ export default {
   background: #414247;
   color: #fefefe;
   border: none;
-  padding: 0.5em 1.5em;
+  padding: 0.75em 2em;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: 600;
+  font-size: 1.1rem;
   font-family: 'Poppins', sans-serif;
   transition: background 0.2s;
 }
@@ -731,5 +826,123 @@ export default {
 
 .error {
   color: #ff6b6b;
+}
+
+/* Commander Damage Modal */
+.cdmg-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 900;
+  backdrop-filter: blur(4px);
+}
+
+.cdmg-modal {
+  background: #313338;
+  border-radius: 20px;
+  padding: 2em 2.5em;
+  width: 100%;
+  max-width: 320px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5em;
+  font-family: 'Poppins', sans-serif;
+  color: #fefefe;
+  position: relative;
+}
+
+.cdmg-modal-close {
+  position: absolute;
+  top: 0.75em;
+  right: 0.9em;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.1rem;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.cdmg-modal-close:hover { color: #fefefe; }
+
+.cdmg-modal-sub {
+  font-size: 0.72rem;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-top: 0.5em;
+}
+
+.cdmg-modal-dealer {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #ffd170;
+}
+
+.cdmg-modal-arrow {
+  font-size: 1rem;
+  color: #595d63;
+}
+
+.cdmg-modal-receiver {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fefefe;
+  margin-bottom: 0.5em;
+}
+
+.cdmg-modal-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.25em;
+  margin-top: 0.5em;
+}
+
+.cdmg-modal-btn {
+  background: #414247;
+  border: none;
+  color: #fefefe;
+  border-radius: 12px;
+  width: 52px;
+  height: 52px;
+  font-size: 1.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+  font-family: 'Poppins', sans-serif;
+  line-height: 1;
+}
+
+.cdmg-modal-btn:hover {
+  background: #ffd170;
+  color: #292b2d;
+}
+
+.cdmg-modal-value {
+  font-size: 3.5rem;
+  font-weight: 800;
+  min-width: 3rem;
+  text-align: center;
+  line-height: 1;
+}
+
+.cdmg-modal-value.cdmg-lethal {
+  color: #ff6b6b;
+}
+
+.cdmg-modal-lethal-warn {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ff6b6b;
+  margin-top: 0.25em;
 }
 </style>

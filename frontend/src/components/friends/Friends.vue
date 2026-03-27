@@ -5,6 +5,15 @@
     <div class="friends-content">
       <h1 class="page-title">Friends</h1>
 
+      <!-- Join Match -->      
+      <div class="join-match-bar">
+        <div class="join-match-info">
+          <span class="join-match-title">Got an invite code?</span>
+          <span class="join-match-sub">Enter it to join a friend's match in progress.</span>
+        </div>
+        <button class="btn-join-match" @click="goToJoin">Join Match</button>
+      </div>
+
       <!-- Add friend -->
       <div class="add-friend-bar">
         <input
@@ -75,6 +84,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import Sidebar from '../shared/Sidebar.vue'
 import { userService } from '../../services/user.service'
 
@@ -82,12 +92,17 @@ export default defineComponent({
   name: 'Friends',
   components: { Sidebar },
   setup() {
+    const router = useRouter()
     const friends = ref<any[]>([])
     const requests = ref<any[]>([])
     const loading = ref(true)
     const searchUsername = ref('')
     const sending = ref(false)
     const addFeedback = ref<{ msg: string; type: 'success' | 'error' } | null>(null)
+
+    function goToJoin() {
+      router.push('/match/join')
+    }
 
     async function loadAll() {
       loading.value = true
@@ -147,7 +162,7 @@ export default defineComponent({
 
     onMounted(loadAll)
 
-    return { friends, requests, loading, searchUsername, sending, addFeedback, sendRequest, accept, reject, remove }
+    return { friends, requests, loading, searchUsername, sending, addFeedback, sendRequest, accept, reject, remove, goToJoin }
   },
 })
 </script>

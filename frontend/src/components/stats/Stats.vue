@@ -61,6 +61,8 @@
                 <tr>
                   <th>Match</th>
                   <th>Format</th>
+                  <th>Start</th>
+                  <th>End</th>
                   <th>Placement</th>
                   <th>Final Life</th>
                   <th>Result</th>
@@ -75,13 +77,15 @@
                 >
                   <td>{{ m.matchName }}</td>
                   <td>{{ m.format }}</td>
+                  <td>{{ formatTime(m.startTime) }}</td>
+                  <td>{{ m.endTime ? formatTime(m.endTime) : '—' }}</td>
                   <td>
-                    <span v-if="m.finalLife != null" class="placement-badge">#{{ m.placement }}</span>
+                    <span v-if="m.endTime != null" class="placement-badge">#{{ m.placement }}</span>
                     <span v-else class="pill in-progress">In Progress</span>
                   </td>
                   <td>{{ m.finalLife ?? '—' }}</td>
                   <td>
-                    <span v-if="m.finalLife != null" class="pill" :class="m.isWinner ? 'win' : 'loss'">
+                    <span v-if="m.endTime != null" class="pill" :class="m.isWinner ? 'win' : 'loss'">
                       {{ m.isWinner ? 'Win' : 'Loss' }}
                     </span>
                     <span v-else class="pill in-progress">—</span>
@@ -104,9 +108,11 @@
         <h2 class="modal-title">{{ selectedMatch.matchName }}</h2>
         <div class="modal-meta">
           <span class="meta-chip">{{ selectedMatch.format }}</span>
+          <span class="meta-chip">▶ {{ formatTime(selectedMatch.startTime) }}</span>
+          <span class="meta-chip">⏹ {{ selectedMatch.endTime ? formatTime(selectedMatch.endTime) : '—' }}</span>
         </div>
 
-        <template v-if="selectedMatch.finalLife != null">
+        <template v-if="selectedMatch.endTime != null">
           <!-- Finished match details -->
           <div class="modal-result">
             <div class="result-row">
@@ -132,7 +138,7 @@
         </template>
 
         <template v-else>
-          <!-- Unfinished match -->
+          <!-- Unfinished match - still in progress -->
           <p class="modal-body">This match is still in progress. You can resume where you left off.</p>
           <div class="modal-actions">
             <button class="btn-resume" @click="resumeMatch(selectedMatch.matchId)">▶ Resume Match</button>
@@ -166,6 +172,12 @@ export default defineComponent({
       return 'bad'
     })
 
+    function formatTime(t: string | null | undefined): string {
+      if (!t) return '—'
+      // MySQL TIME returns "HH:MM:SS" — trim to "HH:MM"
+      return String(t).slice(0, 5)
+    }
+
     function openMatch(m: any) {
       selectedMatch.value = m
     }
@@ -186,7 +198,7 @@ export default defineComponent({
       }
     })
 
-    return { stats, loading, winRateClass, selectedMatch, openMatch, resumeMatch }
+    return { stats, loading, winRateClass, selectedMatch, openMatch, resumeMatch, formatTime }
   },
 })
 </script>

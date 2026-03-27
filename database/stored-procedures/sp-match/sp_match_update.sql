@@ -11,6 +11,7 @@ CREATE PROCEDURE sp_match_update(
     IN in_format VARCHAR(255),
     IN in_startingLife INT,
     IN in_startTime TIME,
+    IN in_endTime TIME,
     IN in_isTeamMatch TINYINT,
     IN in_commanderThreshold INT,
     IN in_counterThreshold INT,
@@ -34,6 +35,7 @@ BEGIN
         format = COALESCE(in_format, format),
         startingLife = COALESCE(in_startingLife, startingLife),
         startTime = COALESCE(in_startTime, startTime),
+        endTime = COALESCE(in_endTime, endTime),
         isTeamMatch = COALESCE(in_isTeamMatch, isTeamMatch),
         commanderThreshold = COALESCE(in_commanderThreshold, commanderThreshold),
         counterThreshold = COALESCE(in_counterThreshold, counterThreshold)

@@ -9,29 +9,32 @@
     padding: 2em 3em 2em 3em;
   width: 100%;
   height: 100%;
+  min-height: 0;
   display: grid;
-  grid-template-rows: auto auto auto;
+  grid-template-rows: auto minmax(200px, 1fr) 2fr;
   gap: 1em;
   background-color: #292b2d;
+  overflow: hidden;
 }
 
 .dashboard-row {
     position: relative;
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
-  height: 100%;
+  min-height: 0;
   width: auto;
   gap: 1em;
 }
+
 
 .box {
     position: relative;
     border-radius: 20px;
   width: 100%;
-  padding: 1em;
-  height: 100%;
+  padding: 2em 2em;
+  min-height: 0;
   background-color: #313338;
   color: #fefefe;
   font-family: 'Poppins', sans-serif;
@@ -117,6 +120,7 @@
   flex-direction: column;
   gap: 0.75em;
   overflow: hidden;
+  height: 100%;
 }
 
 .recent-title {
@@ -137,7 +141,8 @@
   flex-direction: column;
   gap: 0.5em;
   overflow-y: auto;
-  max-height: 220px;
+  flex: 1;
+  min-height: 0;
 }
 
 .recent-row {

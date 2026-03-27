@@ -36,10 +36,9 @@ export default {
   methods: {
     onSubmit() {
       authService.login({ email: this.email, password: this.password })
-        .then(response => {
-          console.log('Login successful', response);
-          // Redirect to the desired page after login
-          this.$router.push('/dashboard');
+        .then(() => {
+          const redirect = this.$route.query.redirect;
+          this.$router.push(redirect ? String(redirect) : '/dashboard');
         })
         .catch(error => {
           console.error('Login failed', error);

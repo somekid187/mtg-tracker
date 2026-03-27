@@ -34,6 +34,7 @@ export const matchService = {
       format?: string
       startingLife?: number
       startTime?: string
+      endTime?: string
       isTeamMatch?: boolean
       commanderThreshold?: number
       counterThreshold?: number

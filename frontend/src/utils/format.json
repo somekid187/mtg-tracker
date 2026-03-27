@@ -74,6 +74,7 @@
       "name": "Commander",
       "starting_life": 40,
       "has_commander_damage": true,
+      "has_tax": true,
       "has_poison": true
     },
     {

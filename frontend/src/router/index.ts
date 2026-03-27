@@ -34,7 +34,7 @@ router.beforeEach(async (to) => {
 
   const refreshToken = authService.getRefreshToken()
   if (!refreshToken) {
-    return { path: '/login' }
+    return { path: '/login', query: { redirect: to.fullPath } }
   }
 
   try {
@@ -42,7 +42,7 @@ router.beforeEach(async (to) => {
     return true
   } catch {
     authService.logout()
-    return { path: '/login' }
+    return { path: '/login', query: { redirect: to.fullPath } }
   }
 })
 

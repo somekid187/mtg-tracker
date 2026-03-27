@@ -167,13 +167,13 @@ export async function getMatchByIdService(matchId: string) {
 export async function updateMatchService(matchId: string, body: any) {
   if (!matchId) throw createError("MISSING_FIELDS", "Match ID is required");
 
-  const { name, description, format, startingLife, startTime, isTeamMatch, commanderThreshold, counterThreshold } = body;
+  const { name, description, format, startingLife, startTime, endTime, isTeamMatch, commanderThreshold, counterThreshold } = body;
   const connection = await pool.getConnection();
   try {
     await connection.execute(
-      "CALL sp_match_update(?, ?, ?, ?, ?, ?, ?, ?, ?, @out_response)",
+      "CALL sp_match_update(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @out_response)",
       [matchId, name ?? null, description ?? null, format ?? null, startingLife ?? null,
-       startTime ?? null, isTeamMatch !== undefined ? (isTeamMatch ? 1 : 0) : null,
+       startTime ?? null, endTime ?? null, isTeamMatch !== undefined ? (isTeamMatch ? 1 : 0) : null,
        commanderThreshold ?? null, counterThreshold ?? null]
     );
     const [rows]: any = await connection.query("SELECT @out_response as result");
