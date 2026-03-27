@@ -16,6 +16,7 @@ const router = createRouter({
     { path: '/dashboard', component: () => import('../components/dashboard/Dashboard.vue') },
     { path: '/friends', component: () => import('../components/friends/Friends.vue') },
     { path: '/stats', component: () => import('../components/stats/Stats.vue') },
+    { path: '/settings', component: () => import('../components/settings/Settings.vue') },
     { path: '/:pathMatch(.*)*', component: () => import('../components/shared/NotFound.vue'), meta: { public: true } },
   ],
 })

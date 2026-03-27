@@ -1,6 +1,22 @@
 import api from './http.service'
 
 export const userService = {
+  getProfile() {
+    return api.get('/user/profile').then((r: any) => r.data)
+  },
+
+  updateProfile(data: { username?: string }) {
+    return api.put('/user/profile', data).then((r: any) => r.data)
+  },
+
+  deleteAccount() {
+    return api.delete('/user/profile').then((r: any) => r.data)
+  },
+
+  requestPasswordReset(email: string) {
+    return api.post('/user/password/reset', { email }).then((r: any) => r.data)
+  },
+
   getStats() {
     return api.get('/user/stats').then((r: any) => r.data)
   },

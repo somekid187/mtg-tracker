@@ -16,14 +16,27 @@ CREATE PROCEDURE sp_refreshToken_create(
 )
 proc:
 BEGIN
+    DECLARE v_errno INT DEFAULT 0;
+
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
         BEGIN
+            GET DIAGNOSTICS CONDITION 1 v_errno = MYSQL_ERRNO;
             ROLLBACK;
-            SET out_response = JSON_OBJECT(
-                'success', FALSE,
-                'message', 'An error occurred while creating the refresh token.',
-                'code',    'INTERNAL_SERVER_ERROR'
-            );
+            -- errno 1062 = duplicate key: the UNIQUE constraint on fk_refreshToken_rotatedFrom
+            -- was violated by a concurrent rotation of the same token
+            IF v_errno = 1062 THEN
+                SET out_response = JSON_OBJECT(
+                    'success', FALSE,
+                    'message', 'This token has already been rotated by a concurrent request.',
+                    'code',    'TOKEN_ALREADY_ROTATED'
+                );
+            ELSE
+                SET out_response = JSON_OBJECT(
+                    'success', FALSE,
+                    'message', 'An error occurred while creating the refresh token.',
+                    'code',    'INTERNAL_SERVER_ERROR'
+                );
+            END IF;
         END;
 
     START TRANSACTION;

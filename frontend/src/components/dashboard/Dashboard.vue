@@ -32,7 +32,33 @@
         </div>
       </div>
       <div class="dashboard-row">
-        <div class="box"></div>
+        <div class="box recent-matches-box">
+          <h2 class="recent-title">Recent Matches</h2>
+          <p v-if="!stats" class="recent-empty">Loading…</p>
+          <p v-else-if="!stats.recentMatches || stats.recentMatches.length === 0" class="recent-empty">
+            No matches played yet.
+          </p>
+          <div v-else class="recent-list">
+            <div
+              v-for="match in stats.recentMatches"
+              :key="match.matchId"
+              class="recent-row"
+              :class="{ clickable: match.finalLife == null }"
+              @click="match.finalLife == null && router.push('/match/' + match.matchId)"
+            >
+              <div class="recent-info">
+                <span class="recent-name">{{ match.matchName }}</span>
+                <span class="recent-meta">{{ match.format }} &middot; {{ formatDate(match.endTime ?? match.startTime) }}</span>
+              </div>
+              <div class="recent-right">
+                <span class="recent-placement" v-if="match.finalLife != null">#{{ match.placement ?? '—' }}</span>
+                <span class="recent-badge" :class="match.finalLife != null ? (match.isWinner ? 'win' : 'loss') : 'in-progress'">
+                  {{ match.finalLife != null ? (match.isWinner ? 'Win' : 'Loss') : 'In Progress' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -65,7 +91,15 @@ export default {
   },
   setup() {
     const router = useRouter()
-    return { router }
+    function formatDate(dateStr) {
+      if (!dateStr) return '—'
+      // MySQL returns 'YYYY-MM-DD HH:MM:SS' — replace space with T for valid ISO parsing
+      const iso = String(dateStr).replace(' ', 'T')
+      const d = new Date(iso)
+      if (isNaN(d.getTime())) return '—'
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    }
+    return { router, formatDate }
   },
 }
 

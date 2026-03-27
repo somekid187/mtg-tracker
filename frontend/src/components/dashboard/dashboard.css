@@ -110,3 +110,107 @@
 .stat-box .stat-value.good {
   color: #ffd170;
 }
+
+/* ── Recent Matches ──────────────────── */
+.recent-matches-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+  overflow: hidden;
+}
+
+.recent-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffd170;
+}
+
+.recent-empty {
+  margin: 0;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  overflow-y: auto;
+  max-height: 220px;
+}
+
+.recent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #292b2d;
+  border-radius: 12px;
+  padding: 0.65em 1em;
+  cursor: default;
+  transition: background-color 0.2s;
+}
+
+.recent-row.clickable {
+  cursor: pointer;
+}
+
+.recent-row.clickable:hover {
+  background-color: #3a3d42;
+}
+
+.recent-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  min-width: 0;
+}
+
+.recent-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recent-meta {
+  font-size: 0.75rem;
+  color: #a0a3a8;
+}
+
+.recent-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  flex-shrink: 0;
+  margin-left: 1em;
+}
+
+.recent-placement {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #a0a3a8;
+}
+
+.recent-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2em 0.6em;
+  border-radius: 999px;
+}
+
+.recent-badge.win {
+  background-color: rgba(107, 255, 184, 0.15);
+  color: #6bffb8;
+}
+
+.recent-badge.loss {
+  background-color: rgba(255, 107, 107, 0.15);
+  color: #ff6b6b;
+}
+
+.recent-badge.in-progress {
+  background-color: rgba(255, 209, 112, 0.15);
+  color: #ffd170;
+}

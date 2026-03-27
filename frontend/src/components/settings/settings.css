@@ -1,0 +1,198 @@
+.page-layout {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+}
+
+.settings-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 2em 3em;
+  gap: 1.5em;
+  background-color: #292b2d;
+  overflow-y: auto;
+  font-family: 'Poppins', sans-serif;
+  color: #fefefe;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fefefe;
+}
+
+/* ── Section Cards ───────────────────── */
+.section-card {
+  background-color: #313338;
+  border-radius: 20px;
+  padding: 1.5em 2em;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.danger-card {
+  border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+.section-header {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffd170;
+}
+
+.section-header.danger {
+  color: #ff6b6b;
+}
+
+.section-desc {
+  margin: 0;
+  color: #a0a3a8;
+  font-size: 0.9rem;
+}
+
+/* ── Profile Fields ──────────────────── */
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.field-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #a0a3a8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.settings-input {
+  background-color: #292b2d;
+  border: 1px solid #4a4a4a;
+  border-radius: 10px;
+  padding: 0.6em 1em;
+  color: #fefefe;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.95rem;
+  max-width: 400px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.settings-input:focus {
+  border-color: #ffd170;
+}
+
+.settings-input:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ── Action Rows ─────────────────────── */
+.field-actions,
+.section-action-row {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  flex-wrap: wrap;
+  margin-top: 0.25em;
+}
+
+/* ── Buttons ─────────────────────────── */
+.btn-save {
+  padding: 0.6em 1.4em;
+  background-color: #ffd170;
+  border-radius: 10px;
+  color: #292b2d;
+  border: none;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.btn-save:hover { background-color: #ffc107; }
+.btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-danger {
+  padding: 0.6em 1.4em;
+  background-color: transparent;
+  border: 2px solid #ff6b6b;
+  border-radius: 10px;
+  color: #ff6b6b;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+
+.btn-danger:hover { background-color: #ff6b6b; color: #fff; }
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Feedback ─────────────────────────  */
+.feedback {
+  font-size: 0.85rem;
+  margin: 0;
+}
+.feedback.error   { color: #ff6b6b; }
+.feedback.success { color: #6bffb8; }
+
+/* ── Delete Confirm Modal ────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background-color: #313338;
+  border-radius: 20px;
+  padding: 2em 2.5em;
+  max-width: 440px;
+  width: 90%;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  font-family: 'Poppins', sans-serif;
+  color: #fefefe;
+}
+
+.modal h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #ff6b6b;
+}
+
+.modal p {
+  margin: 0;
+  color: #a0a3a8;
+  font-size: 0.95rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75em;
+  justify-content: flex-end;
+  margin-top: 0.5em;
+}

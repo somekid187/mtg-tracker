@@ -148,15 +148,7 @@ export async function loginService(req: any) {
     const result = JSON.parse(rows[0].result);
 
     if (!result || !result.success) {
-      // Map database error codes to our standard error codes
-      let errorCode = result?.code || "INVALID_CREDENTIALS";
-      
-      // Convert database-specific error codes to our standard ones
-      if (errorCode === "VALIDATION_USER_NOT_FOUND") {
-        errorCode = "INVALID_CREDENTIALS";
-      }
-      
-      throw createError(errorCode, result?.message || "Invalid email or password");
+      throw createError("INVALID_CREDENTIALS", "Invalid email or password");
     }
 
     const passwordHash = decrypt(result.data.passwordHash);
@@ -303,8 +295,30 @@ export async function refreshService(req: any) {
     
     if (!tokenResult || !tokenResult.success) {
       if (tokenResult?.code === 'TOKEN_ALREADY_ROTATED') {
-        // A concurrent request already rotated this token — treat as revoked so the client re-auths
-        throw createError('TOKEN_REVOKED', 'Refresh token has already been rotated by another request.');
+        // A concurrent request already won the rotation race — issue a fresh standalone token.
+        // The old token is already revoked, so we just create a new one with no rotation chain.
+        const retryToken = generateRefreshToken();
+        const retryHash = hashToken(retryToken);
+        const retryExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+        await connection.execute(
+          "CALL sp_refreshToken_create(?, ?, ?, ?, ?, ?, ?, @out_response)",
+          [userId, retryHash, ip, ip, device, retryExpiresAt, null],
+        );
+
+        const [retryRows]: any = await connection.query("SELECT @out_response as result");
+        const retryResult = JSON.parse(retryRows[0].result);
+
+        if (!retryResult || !retryResult.success) {
+          throw createError(retryResult?.code || "TOKEN_CREATION_FAILED",
+            retryResult?.message || "Failed to create refresh token");
+        }
+
+        return {
+          success: true,
+          data: { accessToken: newAccessToken, refreshToken: retryToken },
+          error: null,
+        };
       }
       throw createError(tokenResult?.code || "TOKEN_CREATION_FAILED", tokenResult?.message 
         || "Failed to create refresh token");

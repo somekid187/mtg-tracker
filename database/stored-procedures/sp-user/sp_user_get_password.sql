@@ -22,7 +22,7 @@ proc:BEGIN
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM AppUser WHERE email = in_email) THEN
-        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'User not found.',
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Invalid email or password.',
                            'code', 'INVALID_CREDENTIALS');
         LEAVE proc;
     END IF;
