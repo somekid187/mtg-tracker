@@ -1,7 +1,5 @@
 USE `mtg-tracker`;
-
 DELIMITER $$
-
 DROP PROCEDURE IF EXISTS sp_commanderDamage_create $$
 
 CREATE PROCEDURE sp_commanderDamage_create(
@@ -44,12 +42,6 @@ proc:BEGIN
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Commander damage created successfully.', 'code', 'SUCCESS_CREATED', 'data', JSON_OBJECT('pk_commanderDamage', LAST_INSERT_ID()));
 END $$
 
-DELIMITER ;
-
-USE `mtg-tracker`;
-
-DELIMITER $$
-
 DROP PROCEDURE IF EXISTS sp_commanderDamage_delete $$
 
 CREATE PROCEDURE sp_commanderDamage_delete(
@@ -76,12 +68,6 @@ proc:BEGIN
     COMMIT;
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Commander damage deleted successfully.', 'code', 'SUCCESS_DELETED', 'data', JSON_OBJECT('pk_commanderDamage', in_pk_commanderDamage));
 END $$
-
-DELIMITER ;
-
-USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_commanderDamage_get_by_id $$
 
@@ -123,55 +109,6 @@ BEGIN
     FROM CommanderDamage
     WHERE pk_commanderDamage = in_pk_commanderDamage;
 END $$
-
-DELIMITER ;
-
-USE `mtg-tracker`;
-
-DELIMITER $$
-
-DROP PROCEDURE IF EXISTS sp_commanderDamages_get $$
-
-CREATE PROCEDURE sp_commanderDamages_get(
-    IN in_page INT,
-    OUT out_response JSON
-)
-proc:
-BEGIN
-    DECLARE offset INT;
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-        BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching commander damages.', 'code', 'INTERNAL_SERVER_ERROR');
-        END;
-    SET offset = (in_page - 1) * 10;
-
-    SELECT JSON_OBJECT(
-                   'success', TRUE,
-                   'message', 'Commander damages fetched successfully.',
-                   'code', 'SUCCESS_OK',
-                   'data', IFNULL(JSON_ARRAYAGG(
-                                          JSON_OBJECT(
-                                                  'pk_commanderDamage', pk_commanderDamage,
-                                                  'damageAmount', damageAmount,
-                                                  'isLethal', isLethal,
-                                                  'fk_player_deals', fk_player_deals,
-                                                  'fk_player_receives', fk_player_receives,
-                                                  'fk_match_refersTo', fk_match_refersTo
-                                          )
-                                  ), JSON_ARRAY())
-           )
-    FROM (SELECT *
-          FROM CommanderDamage
-          ORDER BY pk_commanderDamage DESC
-          LIMIT 10 OFFSET offset) AS CommanderDamage
-    INTO out_response;
-END $$
-
-DELIMITER ;
-
-USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_commanderDamage_update $$
 
@@ -219,11 +156,42 @@ BEGIN
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Commander damage updated successfully.', 'code', 'SUCCESS_UPDATED', 'data', JSON_OBJECT('pk_commanderDamage', in_pk_commanderDamage));
 END $$
 
-DELIMITER ;
+DROP PROCEDURE IF EXISTS sp_commanderDamages_get $$
 
-USE `mtg-tracker`;
+CREATE PROCEDURE sp_commanderDamages_get(
+    IN in_page INT,
+    OUT out_response JSON
+)
+proc:
+BEGIN
+    DECLARE offset INT;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching commander damages.', 'code', 'INTERNAL_SERVER_ERROR');
+        END;
+    SET offset = (in_page - 1) * 10;
 
-DELIMITER $$
+    SELECT JSON_OBJECT(
+                   'success', TRUE,
+                   'message', 'Commander damages fetched successfully.',
+                   'code', 'SUCCESS_OK',
+                   'data', IFNULL(JSON_ARRAYAGG(
+                                          JSON_OBJECT(
+                                                  'pk_commanderDamage', pk_commanderDamage,
+                                                  'damageAmount', damageAmount,
+                                                  'isLethal', isLethal,
+                                                  'fk_player_deals', fk_player_deals,
+                                                  'fk_player_receives', fk_player_receives,
+                                                  'fk_match_refersTo', fk_match_refersTo
+                                          )
+                                  ), JSON_ARRAY())
+           )
+    FROM (SELECT *
+          FROM CommanderDamage
+          ORDER BY pk_commanderDamage DESC
+          LIMIT 10 OFFSET offset) AS CommanderDamage
+    INTO out_response;
+END $$
 
 DROP PROCEDURE IF EXISTS sp_friendship_accept $$
 
@@ -268,11 +236,6 @@ proc:BEGIN
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Friend request accepted.', 'code', 'SUCCESS_UPDATED', 'data', JSON_OBJECT('pk_friendship', in_pk_friendship));
 END $$
 
-DELIMITER ;
-USE `mtg-tracker`;
-
-DELIMITER $$
-
 DROP PROCEDURE IF EXISTS sp_friendship_delete $$
 
 CREATE PROCEDURE sp_friendship_delete(
@@ -308,11 +271,6 @@ proc:BEGIN
 
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Friendship removed.', 'code', 'SUCCESS_DELETED', 'data', JSON_OBJECT('pk_friendship', in_pk_friendship));
 END $$
-
-DELIMITER ;
-USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_friendship_reject $$
 
@@ -357,49 +315,6 @@ proc:BEGIN
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Friend request rejected.', 'code', 'SUCCESS_UPDATED', 'data', JSON_OBJECT('pk_friendship', in_pk_friendship));
 END $$
 
-DELIMITER ;
-USE `mtg-tracker`;
-
-DELIMITER $$
-
-DROP PROCEDURE IF EXISTS sp_friendship_requests_get $$
-
-CREATE PROCEDURE sp_friendship_requests_get(
-    IN in_fk_appUser BIGINT,
-    OUT out_response JSON
-)
-proc:BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-        BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching friend requests.', 'code', 'INTERNAL_SERVER_ERROR');
-        END;
-
-    SET out_response = (
-        SELECT JSON_OBJECT(
-            'success', TRUE,
-            'message', 'Friend requests fetched successfully.',
-            'code', 'SUCCESS',
-            'data', COALESCE(JSON_ARRAYAGG(
-                JSON_OBJECT(
-                    'pk_friendship',      f.pk_friendship,
-                    'createdAt',          f.createdAt,
-                    'requesterId',        f.fk_appUser_requests,
-                    'requesterUsername',  au.username
-                )
-            ), JSON_ARRAY())
-        )
-        FROM Friendship f
-        JOIN AppUser au ON au.pk_appUser = f.fk_appUser_requests
-        WHERE f.fk_appUser_receives = in_fk_appUser
-          AND f.status = 'pending'
-    );
-END $$
-
-DELIMITER ;
-USE `mtg-tracker`;
-
-DELIMITER $$
-
 DROP PROCEDURE IF EXISTS sp_friendship_request $$
 
 CREATE PROCEDURE sp_friendship_request(
@@ -439,10 +354,38 @@ proc:BEGIN
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Friend request sent.', 'code', 'SUCCESS_CREATED', 'data', JSON_OBJECT('pk_friendship', LAST_INSERT_ID()));
 END $$
 
-DELIMITER ;
-USE `mtg-tracker`;
+DROP PROCEDURE IF EXISTS sp_friendship_requests_get $$
 
-DELIMITER $$
+CREATE PROCEDURE sp_friendship_requests_get(
+    IN in_fk_appUser BIGINT,
+    OUT out_response JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching friend requests.', 'code', 'INTERNAL_SERVER_ERROR');
+        END;
+
+    SET out_response = (
+        SELECT JSON_OBJECT(
+            'success', TRUE,
+            'message', 'Friend requests fetched successfully.',
+            'code', 'SUCCESS',
+            'data', COALESCE(JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'pk_friendship',      f.pk_friendship,
+                    'createdAt',          f.createdAt,
+                    'requesterId',        f.fk_appUser_requests,
+                    'requesterUsername',  au.username
+                )
+            ), JSON_ARRAY())
+        )
+        FROM Friendship f
+        JOIN AppUser au ON au.pk_appUser = f.fk_appUser_requests
+        WHERE f.fk_appUser_receives = in_fk_appUser
+          AND f.status = 'pending'
+    );
+END $$
 
 DROP PROCEDURE IF EXISTS sp_friendships_get_by_user $$
 
@@ -479,11 +422,6 @@ proc:BEGIN
     );
 END $$
 
-DELIMITER ;
-USE `mtg-tracker`;
-
-DELIMITER $$
-
 DROP PROCEDURE IF EXISTS sp_guest_create $$
 
 CREATE PROCEDURE sp_guest_create(
@@ -506,10 +444,6 @@ BEGIN
 
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Guest created successfully.', 'code', 'SUCCESS_CREATED', 'data', JSON_OBJECT('pk_guest', LAST_INSERT_ID()));
 END $$
-
-DELIMITER ;USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_guest_delete $$
 
@@ -543,12 +477,6 @@ proc:BEGIN
 
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Guest deleted successfully.', 'code', 'SUCCESS_DELETED', 'data', JSON_OBJECT('pk_guest', in_pk_guest));
 END $$
-
-DELIMITER ;
-
-USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_guest_get_by_id $$
 
@@ -588,52 +516,6 @@ BEGIN
     WHERE pk_guest = in_pk_guest;
 END $$
 
-DELIMITER ;
-
-USE `mtg-tracker`;
-
-DELIMITER $$
-
-DROP PROCEDURE IF EXISTS sp_guests_get $$
-
-CREATE PROCEDURE sp_guests_get(
-    IN in_page INT,
-    OUT out_response JSON
-)
-proc:
-BEGIN
-    DECLARE offset INT;
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-        BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching guests.', 'code', 'INTERNAL_SERVER_ERROR');
-        END;
-    SET offset = (in_page - 1) * 10;
-
-    SELECT JSON_OBJECT(
-                   'success', TRUE,
-                   'message', 'Guests fetched successfully.',
-                   'code', 'SUCCESS_OK',
-                   'data', IFNULL(JSON_ARRAYAGG(
-                                          JSON_OBJECT(
-                                                  'pk_guest', pk_guest,
-                                                  'guestName', guestName,
-                                                  'createdAt', createdAt
-                                          )
-                                  ), JSON_ARRAY())
-           )
-    FROM (SELECT *
-          FROM Guest
-          ORDER BY createdAt DESC
-          LIMIT 10 OFFSET offset) AS Guest
-    INTO out_response;
-END $$
-
-DELIMITER ;
-
-USE `mtg-tracker`;
-
-DELIMITER $$
-
 DROP PROCEDURE IF EXISTS sp_guest_update $$
 
 CREATE PROCEDURE sp_guest_update(
@@ -672,11 +554,39 @@ BEGIN
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Guest updated successfully.', 'code', 'SUCCESS_UPDATED', 'data', JSON_OBJECT('pk_guest', in_pk_guest));
 END $$
 
-DELIMITER ;
+DROP PROCEDURE IF EXISTS sp_guests_get $$
 
-USE `mtg-tracker`;
+CREATE PROCEDURE sp_guests_get(
+    IN in_page INT,
+    OUT out_response JSON
+)
+proc:
+BEGIN
+    DECLARE offset INT;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching guests.', 'code', 'INTERNAL_SERVER_ERROR');
+        END;
+    SET offset = (in_page - 1) * 10;
 
-DELIMITER $$
+    SELECT JSON_OBJECT(
+                   'success', TRUE,
+                   'message', 'Guests fetched successfully.',
+                   'code', 'SUCCESS_OK',
+                   'data', IFNULL(JSON_ARRAYAGG(
+                                          JSON_OBJECT(
+                                                  'pk_guest', pk_guest,
+                                                  'guestName', guestName,
+                                                  'createdAt', createdAt
+                                          )
+                                  ), JSON_ARRAY())
+           )
+    FROM (SELECT *
+          FROM Guest
+          ORDER BY createdAt DESC
+          LIMIT 10 OFFSET offset) AS Guest
+    INTO out_response;
+END $$
 
 DROP PROCEDURE IF EXISTS sp_inviteCode_create $$
 
@@ -718,12 +628,6 @@ proc:BEGIN
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Invite code created successfully.', 'code', 'SUCCESS_CREATED', 'data', JSON_OBJECT('pk_inviteCode', LAST_INSERT_ID()));
 END $$
 
-DELIMITER ;
-
-USE `mtg-tracker`;
-
-DELIMITER $$
-
 DROP PROCEDURE IF EXISTS sp_inviteCode_delete $$
 
 CREATE PROCEDURE sp_inviteCode_delete(
@@ -750,12 +654,6 @@ proc:BEGIN
     COMMIT;
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Invite code deleted successfully.', 'code', 'SUCCESS_DELETED', 'data', JSON_OBJECT('pk_inviteCode', in_pk_inviteCode));
 END $$
-
-DELIMITER ;
-
-USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_inviteCode_get_by_id $$
 
@@ -797,55 +695,6 @@ BEGIN
     FROM InviteCode
     WHERE pk_inviteCode = in_pk_inviteCode;
 END $$
-
-DELIMITER ;
-
-USE `mtg-tracker`;
-
-DELIMITER $$
-
-DROP PROCEDURE IF EXISTS sp_inviteCodes_get $$
-
-CREATE PROCEDURE sp_inviteCodes_get(
-    IN in_page INT,
-    OUT out_response JSON
-)
-proc:
-BEGIN
-    DECLARE offset INT;
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-        BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching invite codes.', 'code', 'INTERNAL_SERVER_ERROR');
-        END;
-    SET offset = (in_page - 1) * 10;
-
-    SELECT JSON_OBJECT(
-                   'success', TRUE,
-                   'message', 'Invite codes fetched successfully.',
-                   'code', 'SUCCESS_OK',
-                   'data', IFNULL(JSON_ARRAYAGG(
-                                          JSON_OBJECT(
-                                                  'pk_inviteCode', pk_inviteCode,
-                                                  'code', code,
-                                                  'status', status,
-                                                  'createdAt', createdAt,
-                                                  'expiresAt', expiresAt,
-                                                  'fk_match_connects', fk_match_connects
-                                          )
-                                  ), JSON_ARRAY())
-           )
-    FROM (SELECT *
-          FROM InviteCode
-          ORDER BY createdAt DESC
-          LIMIT 10 OFFSET offset) AS InviteCode
-    INTO out_response;
-END $$
-
-DELIMITER ;
-
-USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_inviteCode_update $$
 
@@ -889,11 +738,42 @@ BEGIN
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Invite code updated successfully.', 'code', 'SUCCESS_UPDATED', 'data', JSON_OBJECT('pk_inviteCode', in_pk_inviteCode));
 END $$
 
-DELIMITER ;
+DROP PROCEDURE IF EXISTS sp_inviteCodes_get $$
 
-USE `mtg-tracker`;
+CREATE PROCEDURE sp_inviteCodes_get(
+    IN in_page INT,
+    OUT out_response JSON
+)
+proc:
+BEGIN
+    DECLARE offset INT;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching invite codes.', 'code', 'INTERNAL_SERVER_ERROR');
+        END;
+    SET offset = (in_page - 1) * 10;
 
-DELIMITER $$
+    SELECT JSON_OBJECT(
+                   'success', TRUE,
+                   'message', 'Invite codes fetched successfully.',
+                   'code', 'SUCCESS_OK',
+                   'data', IFNULL(JSON_ARRAYAGG(
+                                          JSON_OBJECT(
+                                                  'pk_inviteCode', pk_inviteCode,
+                                                  'code', code,
+                                                  'status', status,
+                                                  'createdAt', createdAt,
+                                                  'expiresAt', expiresAt,
+                                                  'fk_match_connects', fk_match_connects
+                                          )
+                                  ), JSON_ARRAY())
+           )
+    FROM (SELECT *
+          FROM InviteCode
+          ORDER BY createdAt DESC
+          LIMIT 10 OFFSET offset) AS InviteCode
+    INTO out_response;
+END $$
 
 DROP PROCEDURE IF EXISTS sp_match_create $$
 
@@ -951,10 +831,6 @@ proc:BEGIN
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Match created successfully.', 'code', 'SUCCESS_CREATED', 'data', JSON_OBJECT('pk_match', LAST_INSERT_ID()));
 END $$
 
-DELIMITER ;USE `mtg-tracker`;
-
-DELIMITER $$
-
 DROP PROCEDURE IF EXISTS sp_match_delete $$
 
 CREATE PROCEDURE sp_match_delete(
@@ -988,13 +864,6 @@ proc:BEGIN
     COMMIT;
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Match deleted successfully.', 'code', 'SUCCESS_DELETED', 'data', JSON_OBJECT('pk_match', in_pk_match));
 END $$
-
-DELIMITER ;
-END $$
-
-DELIMITER ;USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_match_get_by_id $$
 
@@ -1041,59 +910,6 @@ BEGIN
     FROM `Match`
     WHERE pk_match = in_pk_match;
 END $$
-
-DELIMITER ;USE `mtg-tracker`;
-
-DELIMITER $$
-
-DROP PROCEDURE IF EXISTS sp_matchs_get $$
-
-CREATE PROCEDURE sp_matchs_get(
-    IN in_page INT,
-    OUT out_response JSON
-)
-proc:
-BEGIN
-    DECLARE offset INT;
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-        BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching matches.', 'code', 'INTERNAL_SERVER_ERROR');
-        END;
-    SET offset = (in_page - 1) * 10;
-
-
-    SELECT JSON_OBJECT(
-                   'success', TRUE,
-                   'message', 'Matches fetched successfully.',
-                   'code', 'SUCCESS_OK',
-                   'data', IFNULL(JSON_ARRAYAGG(
-                                          JSON_OBJECT(
-                                                  'pk_match', `Match`.pk_match,
-                                                  'name', name,
-                                                  'description', description,
-                                                  'format', format,
-                                                  'startingLife', startingLife,
-                                                  'startTime', startTime,
-                                                  'endTime', endTime,
-                                                  'isTeamMatch', isTeamMatch,
-                                                  'commanderThreshold', commanderThreshold,
-                                                  'counterThreshold', counterThreshold,
-                                                  'fk_appUser_creates', fk_appUser_creates
-                                          )
-                                  ), JSON_ARRAY())
-           )
-    FROM (SELECT *
-          FROM `Match`
-          ORDER BY startTime DESC
-          LIMIT 10 OFFSET offset) AS `Match`
-    INTO out_response;
-
-END $$
-
-DELIMITER ;
-USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_match_update $$
 
@@ -1148,10 +964,49 @@ BEGIN
 
 END $$
 
-DELIMITER ;
-USE `mtg-tracker`;
+DROP PROCEDURE IF EXISTS sp_matchs_get $$
 
-DELIMITER $$
+CREATE PROCEDURE sp_matchs_get(
+    IN in_page INT,
+    OUT out_response JSON
+)
+proc:
+BEGIN
+    DECLARE offset INT;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching matches.', 'code', 'INTERNAL_SERVER_ERROR');
+        END;
+    SET offset = (in_page - 1) * 10;
+
+
+    SELECT JSON_OBJECT(
+                   'success', TRUE,
+                   'message', 'Matches fetched successfully.',
+                   'code', 'SUCCESS_OK',
+                   'data', IFNULL(JSON_ARRAYAGG(
+                                          JSON_OBJECT(
+                                                  'pk_match', `Match`.pk_match,
+                                                  'name', name,
+                                                  'description', description,
+                                                  'format', format,
+                                                  'startingLife', startingLife,
+                                                  'startTime', startTime,
+                                                  'endTime', endTime,
+                                                  'isTeamMatch', isTeamMatch,
+                                                  'commanderThreshold', commanderThreshold,
+                                                  'counterThreshold', counterThreshold,
+                                                  'fk_appUser_creates', fk_appUser_creates
+                                          )
+                                  ), JSON_ARRAY())
+           )
+    FROM (SELECT *
+          FROM `Match`
+          ORDER BY startTime DESC
+          LIMIT 10 OFFSET offset) AS `Match`
+    INTO out_response;
+
+END $$
 
 DROP PROCEDURE IF EXISTS sp_player_create $$
 
@@ -1234,10 +1089,6 @@ BEGIN
 
 END $$
 
-DELIMITER ;USE `mtg-tracker`;
-
-DELIMITER $$
-
 DROP PROCEDURE IF EXISTS sp_player_delete $$
 
 CREATE PROCEDURE sp_player_delete(
@@ -1269,9 +1120,7 @@ proc:BEGIN
     COMMIT;
 
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Player deleted successfully.', 'code', 'SUCCESS_DELETED', 'data', JSON_OBJECT('pk_player', in_pk_player));
-END $$USE `mtg-tracker`;
-
-DELIMITER $$
+END $$
 
 DROP PROCEDURE IF EXISTS sp_player_get_by_id $$
 
@@ -1321,62 +1170,6 @@ BEGIN
     FROM Player
     WHERE pk_player = in_pk_player;
 END $$
-
-DELIMITER ;USE `mtg-tracker`;
-
-DELIMITER $$
-
-DROP PROCEDURE IF EXISTS sp_players_get $$
-
-CREATE PROCEDURE sp_players_get(
-    IN in_page INT,
-    OUT out_response JSON
-)
-proc:BEGIN
-    DECLARE offset INT;
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-        BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching players.', 'code', 'INTERNAL_SERVER_ERROR');
-        END;
-
-    SET offset = (in_page - 1) * 10;
-
-    SELECT JSON_OBJECT(
-        'success', TRUE,
-        'message', 'Players fetched successfully.',
-        'code', 'SUCCESS_OK',
-        'data', IFNULL(JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'pk_player', pk_player,
-                'startingLife', startingLife,
-                'finalLife', finalLife,
-                'isWinner', isWinner,
-                'tax', tax,
-                'placement', placement,
-                'killCounter', killCounter,
-                'poisonCounter', poisonCounter,
-                'minPlayers', minPlayers,
-                'maxPlayers', maxPlayers,
-                'fk_guest_enters', fk_guest_enters,
-                'fk_appUser_participates', fk_appUser_participates,
-                'fk_team_isIncluded', fk_team_isIncluded,
-                'fk_match_isPlayedIn', fk_match_isPlayedIn
-            )
-        ), JSON_ARRAY())
-    )
-    INTO out_response
-    FROM (
-        SELECT pk_player, startingLife, finalLife, isWinner, tax, placement, killCounter, poisonCounter, minPlayers, maxPlayers, fk_guest_enters, fk_appUser_participates, fk_team_isIncluded, fk_match_isPlayedIn
-        FROM Player
-        ORDER BY pk_player
-        LIMIT 10 OFFSET offset
-    ) AS players;
-
-END $$
-
-DELIMITER ;USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_player_update $$
 
@@ -1437,9 +1230,53 @@ proc:BEGIN
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Player updated successfully.', 'code', 'SUCCESS_UPDATED', 'data', JSON_OBJECT('pk_player', in_pk_player));
 END $$
 
-DELIMITER ;USE `mtg-tracker`;
+DROP PROCEDURE IF EXISTS sp_players_get $$
 
-DELIMITER $$
+CREATE PROCEDURE sp_players_get(
+    IN in_page INT,
+    OUT out_response JSON
+)
+proc:BEGIN
+    DECLARE offset INT;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching players.', 'code', 'INTERNAL_SERVER_ERROR');
+        END;
+
+    SET offset = (in_page - 1) * 10;
+
+    SELECT JSON_OBJECT(
+        'success', TRUE,
+        'message', 'Players fetched successfully.',
+        'code', 'SUCCESS_OK',
+        'data', IFNULL(JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'pk_player', pk_player,
+                'startingLife', startingLife,
+                'finalLife', finalLife,
+                'isWinner', isWinner,
+                'tax', tax,
+                'placement', placement,
+                'killCounter', killCounter,
+                'poisonCounter', poisonCounter,
+                'minPlayers', minPlayers,
+                'maxPlayers', maxPlayers,
+                'fk_guest_enters', fk_guest_enters,
+                'fk_appUser_participates', fk_appUser_participates,
+                'fk_team_isIncluded', fk_team_isIncluded,
+                'fk_match_isPlayedIn', fk_match_isPlayedIn
+            )
+        ), JSON_ARRAY())
+    )
+    INTO out_response
+    FROM (
+        SELECT pk_player, startingLife, finalLife, isWinner, tax, placement, killCounter, poisonCounter, minPlayers, maxPlayers, fk_guest_enters, fk_appUser_participates, fk_team_isIncluded, fk_match_isPlayedIn
+        FROM Player
+        ORDER BY pk_player
+        LIMIT 10 OFFSET offset
+    ) AS players;
+
+END $$
 
 DROP PROCEDURE IF EXISTS sp_refreshToken_create $$
 
@@ -1563,11 +1400,6 @@ BEGIN
     );
 END $$
 
-DELIMITER ;
-USE `mtg-tracker`;
-
-DELIMITER $$
-
 DROP PROCEDURE IF EXISTS sp_refreshToken_delete $$
 
 CREATE PROCEDURE sp_refreshToken_delete(
@@ -1602,9 +1434,7 @@ proc:BEGIN
 
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Refresh token deleted successfully.',
     'code', 'REFRESHTOKEN_DELETED');
-END $$USE `mtg-tracker`;
-
-DELIMITER $$
+END $$
 
 DROP PROCEDURE IF EXISTS sp_refreshToken_get_by_id $$
 
@@ -1637,9 +1467,6 @@ proc:BEGIN
     WHERE pk_refreshToken = in_pk_refreshToken;
 
 END $$
-USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_refreshToken_revoke $$
 
@@ -1705,12 +1532,6 @@ BEGIN
     );
 END $$
 
-DELIMITER ;
-
-USE `mtg-tracker`;
-
-DELIMITER $$
-
 DROP PROCEDURE IF EXISTS sp_team_create $$
 
 CREATE PROCEDURE sp_team_create(
@@ -1734,13 +1555,6 @@ proc:BEGIN
 
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Team created successfully.', 'code', 'SUCCESS_CREATED', 'data', JSON_OBJECT('pk_team', LAST_INSERT_ID()));
 END $$
-
-DELIMITER ;
-
-
-USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_team_delete $$
 
@@ -1775,10 +1589,6 @@ proc:BEGIN
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Team deleted successfully.', 'code', 'SUCCESS_DELETED', 'data', JSON_OBJECT('pk_team', in_pk_team));
 
 END $$
-
-DELIMITER ;USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_team_get_by_id $$
 
@@ -1818,56 +1628,6 @@ BEGIN
     FROM Team
     WHERE pk_team = in_pk_team;
 END $$
-
-DELIMITER ;USE `mtg-tracker`;
-
-DELIMITER $$
-
-DROP PROCEDURE IF EXISTS sp_teams_get $$
-
-CREATE PROCEDURE sp_teams_get(
-    IN in_page INT,
-    OUT out_response JSON
-)
-proc:BEGIN
-    DECLARE offset INT;
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-        BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching teams.', 'code', 'INTERNAL_SERVER_ERROR');
-        END;
-
-    SET offset = (in_page - 1) * 10;
-
-    SELECT JSON_OBJECT(
-        'success', TRUE,
-        'message', 'Teams fetched successfully.',
-        'code', 'SUCCESS_OK',
-        'data', IFNULL(JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'pk_team', pk_team,
-                'name', name,
-                'startingLife', startingLife,
-                'finalLife', finalLife
-            )
-        ), JSON_ARRAY())
-    )
-    INTO out_response
-    FROM (
-        SELECT pk_team, name, startingLife, finalLife
-        FROM Team
-        ORDER BY name
-        LIMIT 10 OFFSET offset
-    ) AS teams;
-
-
-END $$
-
-DELIMITER ;
-
-
-USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_team_update $$
 
@@ -1909,11 +1669,44 @@ proc:BEGIN
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Team updated successfully.', 'code', 'SUCCESS_UPDATED', 'data', JSON_OBJECT('pk_team', in_pk_team));
 END $$
 
-DELIMITER ;
+DROP PROCEDURE IF EXISTS sp_teams_get $$
 
-USE `mtg-tracker`;
+CREATE PROCEDURE sp_teams_get(
+    IN in_page INT,
+    OUT out_response JSON
+)
+proc:BEGIN
+    DECLARE offset INT;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching teams.', 'code', 'INTERNAL_SERVER_ERROR');
+        END;
 
-DELIMITER $$
+    SET offset = (in_page - 1) * 10;
+
+    SELECT JSON_OBJECT(
+        'success', TRUE,
+        'message', 'Teams fetched successfully.',
+        'code', 'SUCCESS_OK',
+        'data', IFNULL(JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'pk_team', pk_team,
+                'name', name,
+                'startingLife', startingLife,
+                'finalLife', finalLife
+            )
+        ), JSON_ARRAY())
+    )
+    INTO out_response
+    FROM (
+        SELECT pk_team, name, startingLife, finalLife
+        FROM Team
+        ORDER BY name
+        LIMIT 10 OFFSET offset
+    ) AS teams;
+
+
+END $$
 
 DROP PROCEDURE IF EXISTS sp_user_activate $$
 
@@ -1937,9 +1730,7 @@ proc:BEGIN
     END IF;
 
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'User activated successfully.', 'code', 'SUCCESS_OK');
-END $$USE `mtg-tracker`;
-
-DELIMITER $$
+END $$
 
 DROP PROCEDURE IF EXISTS sp_user_change_password$$
 
@@ -2017,12 +1808,6 @@ proc: BEGIN
 
 END$$
 
-DELIMITER ;
-
-USE `mtg-tracker`;
-
-DELIMITER $$
-
 DROP PROCEDURE IF EXISTS sp_user_create $$
 
 CREATE PROCEDURE sp_user_create(
@@ -2076,10 +1861,6 @@ BEGIN
                                    'data', JSON_OBJECT('pk_appUser', LAST_INSERT_ID()));
 END $$
 
-DELIMITER ;USE `mtg-tracker`;
-
-DELIMITER $$
-
 DROP PROCEDURE IF EXISTS sp_user_delete $$
 
 CREATE PROCEDURE sp_user_delete(
@@ -2112,10 +1893,6 @@ proc:BEGIN
 
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'User deleted successfully.', 'code', 'SUCCESS_DELETED', 'data', JSON_OBJECT('pk_appUser', in_pk_appUser));
 END $$
-
-DELIMITER ;USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_user_get_by_email $$
 
@@ -2158,10 +1935,6 @@ proc:BEGIN
     WHERE pk_appUser = in_pk_appUser;
 END $$
 
-DELIMITER ;USE `mtg-tracker`;
-
-DELIMITER $$
-
 DROP PROCEDURE IF EXISTS sp_user_get_by_id $$
 
 CREATE PROCEDURE sp_user_get_by_id(
@@ -2203,10 +1976,6 @@ proc:BEGIN
     WHERE pk_appUser = in_pk_appUser;
 END $$
 
-DELIMITER ;USE `mtg-tracker`;
-
-DELIMITER $$
-
 DROP PROCEDURE IF EXISTS sp_user_get_by_username $$
 
 CREATE PROCEDURE sp_user_get_by_username(
@@ -2242,11 +2011,6 @@ proc:BEGIN
     FROM AppUser
     WHERE username = in_username;
 END $$
-
-DELIMITER ;
-USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_user_get_password $$
 
@@ -2284,53 +2048,7 @@ proc:BEGIN
     INTO out_response
     FROM AppUser
     WHERE email = in_email;
-END $$USE `mtg-tracker`;
-
-DELIMITER $$
-
-DROP PROCEDURE IF EXISTS sp_users_get $$
-
-CREATE PROCEDURE sp_users_get(
-    IN in_page INT,
-    OUT out_response JSON
-)
-proc:BEGIN
-    DECLARE offset INT;
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-        BEGIN
-            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching users.', 'code', 'INTERNAL_SERVER_ERROR');
-        END;
-
-    SET offset = (in_page - 1) * 10;
-
-    SELECT JSON_OBJECT(
-        'success', TRUE,
-        'message', 'Users fetched successfully.',
-        'code', 'SUCCESS_OK',
-        'data', IFNULL(JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'pk_appUser', pk_appUser,
-                'username', username,
-                'email', email,
-                'createdAt', createdAt,
-                'lastLogin', lastLogin,
-                'isActive', isActive,
-                'emailVerified', emailVerified
-            )
-        ), JSON_ARRAY())
-    )
-    INTO out_response
-    FROM (
-        SELECT pk_appUser, username, email, createdAt, lastLogin, isActive, emailVerified
-        FROM AppUser
-        ORDER BY createdAt DESC
-        LIMIT 10 OFFSET offset
-    ) AS users;
 END $$
-
-DELIMITER ;USE `mtg-tracker`;
-
-DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_user_stats_get $$
 
@@ -2416,11 +2134,6 @@ proc:BEGIN
     );
 END $$
 
-DELIMITER ;
-USE `mtg-tracker`;
-
-DELIMITER $$
-
 DROP PROCEDURE IF EXISTS sp_user_update $$
 
 CREATE PROCEDURE sp_user_update(
@@ -2457,6 +2170,46 @@ proc:BEGIN
     COMMIT;
 
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'User updated successfully.', 'code', 'SUCCESS_UPDATED', 'data', JSON_OBJECT('pk_appUser', in_pk_appUser));
+END $$
+
+DROP PROCEDURE IF EXISTS sp_users_get $$
+
+CREATE PROCEDURE sp_users_get(
+    IN in_page INT,
+    OUT out_response JSON
+)
+proc:BEGIN
+    DECLARE offset INT;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching users.', 'code', 'INTERNAL_SERVER_ERROR');
+        END;
+
+    SET offset = (in_page - 1) * 10;
+
+    SELECT JSON_OBJECT(
+        'success', TRUE,
+        'message', 'Users fetched successfully.',
+        'code', 'SUCCESS_OK',
+        'data', IFNULL(JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'pk_appUser', pk_appUser,
+                'username', username,
+                'email', email,
+                'createdAt', createdAt,
+                'lastLogin', lastLogin,
+                'isActive', isActive,
+                'emailVerified', emailVerified
+            )
+        ), JSON_ARRAY())
+    )
+    INTO out_response
+    FROM (
+        SELECT pk_appUser, username, email, createdAt, lastLogin, isActive, emailVerified
+        FROM AppUser
+        ORDER BY createdAt DESC
+        LIMIT 10 OFFSET offset
+    ) AS users;
 END $$
 
 DELIMITER ;

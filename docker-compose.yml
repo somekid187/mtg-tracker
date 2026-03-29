@@ -1,6 +1,7 @@
 services:
   db:
     image: mysql:latest
+    restart: unless-stopped
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
@@ -14,16 +15,12 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-    ports:
-      - "3306:3306"
     networks:
       - mtg-network
 
   backend:
     build: ./backend
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+    restart: unless-stopped
     environment:
       BACKEND_PORT: 3000
       DB_HOST: db
@@ -41,14 +38,11 @@ services:
       SMTP_PASS: ${SMTP_PASS}
       MAIL_FROM: ${MAIL_FROM}
       APP_NAME: ${APP_NAME}
-      CHOKIDAR_USEPOLLING: "true"
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/"]
       interval: 10s
       timeout: 5s
       retries: 5
-    command:
-      sh -c "npm run dev"
     depends_on:
       db:
         condition: service_healthy
@@ -58,20 +52,14 @@ services:
       - mtg-network
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_BACKEND_URL: ${VITE_BACKEND_URL}
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      BACKEND_PORT: ${BACKEND_PORT}
-      BACKEND_URL: ${BACKEND_URL}
-      CHOKIDAR_USEPOLLING: "true"
-    command:
-      sh -c "npm run dev -- --host 0.0.0.0 --port 5173"
-    ports:
-      - ${FRONTEND_PORT:-5173}:5173
-    networks:
-      - mtg-network
+      - /var/www/mtgtracker:/output
+    entrypoint: sh -c "cp -r /usr/share/nginx/html/. /output/"
+    restart: "no"
 
 volumes:
   db_data:

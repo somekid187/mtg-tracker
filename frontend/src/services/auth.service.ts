@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const apiURL = process.env.BACKEND_URL || 'http://localhost:3000'
+const apiURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
 
 const accessTokenKey = 'accessToken'
 const refreshTokenKey = 'refreshToken'
@@ -15,7 +15,7 @@ function normalizeToken(value: unknown) {
 
 function decodeJwtPayload(token: string): any {
   try {
-    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const base64 = token.split('.')[1]?.replace(/-/g, '+').replace(/_/g, '/') ?? ''
     return JSON.parse(atob(base64))
   } catch {
     return null

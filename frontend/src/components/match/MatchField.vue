@@ -348,8 +348,9 @@ export default {
       player[field] = Math.max(0, player[field] + delta)
     },
     adjustPoison(player, delta) {
+      const prev = player.poisonCounter
       player.poisonCounter = Math.max(0, player.poisonCounter + delta)
-      if (player.poisonCounter < 0) player.poisonCounter = 0
+      const applied = player.poisonCounter - prev
     },
     adjustCommanderDamage(player, dealerId, delta) {
       const prev = player.commanderDamage[dealerId]
@@ -369,8 +370,13 @@ export default {
       this.ending = true
       this.endError = ''
       try {
-        // Sort by currentLife descending; ties broken by original position
-        const sorted = [...this.matchData.players].sort((a, b) => b.currentLife - a.currentLife)
+        // Sort: alive players by currentLife desc, eliminated players last
+        const sorted = [...this.matchData.players].sort((a, b) => {
+          const aElim = this.isEliminated(a) ? 1 : 0
+          const bElim = this.isEliminated(b) ? 1 : 0
+          if (aElim !== bElim) return aElim - bElim
+          return b.currentLife - a.currentLife
+        })
 
         // Assign placements (1 = most life = winner, last = eliminated/least life)
         const withPlacements = sorted.map((p, i) => ({

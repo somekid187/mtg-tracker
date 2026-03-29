@@ -1,7 +1,7 @@
 import axios from 'axios'
 import api from './http.service'
 
-const apiURL = process.env.BACKEND_URL || 'http://localhost:3000'
+const apiURL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
 
 export const inviteCodeService = {
   createInviteCode(data: { code: string; expiresAt: string; fk_match_connects: number }) {
