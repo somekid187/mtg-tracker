@@ -51,49 +51,94 @@
           </div>
         </div>
 
-        <!-- Recent matches -->
+        <!-- Recent matches / Leaderboard -->
         <div class="section-card">
-          <h2 class="section-title">Recent Matches</h2>
-          <p v-if="!stats.recentMatches?.length" class="empty-state">No matches played yet.</p>
-          <div v-else class="match-table-scroll">
-            <table class="match-table">
-              <thead>
-                <tr>
-                  <th>Match</th>
-                  <th>Format</th>
-                  <th>Start</th>
-                  <th>End</th>
-                  <th>Placement</th>
-                  <th>Final Life</th>
-                  <th>Result</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="m in stats.recentMatches"
-                  :key="m.matchId"
-                  class="match-row"
-                  @click="openMatch(m)"
-                >
-                  <td>{{ m.matchName }}</td>
-                  <td>{{ m.format }}</td>
-                  <td>{{ formatTime(m.startTime) }}</td>
-                  <td>{{ m.endTime ? formatTime(m.endTime) : '—' }}</td>
-                  <td>
-                    <span v-if="m.endTime != null" class="placement-badge">#{{ m.placement }}</span>
-                    <span v-else class="pill in-progress">In Progress</span>
-                  </td>
-                  <td>{{ m.finalLife ?? '—' }}</td>
-                  <td>
-                    <span v-if="m.endTime != null" class="pill" :class="m.isWinner ? 'win' : 'loss'">
-                      {{ m.isWinner ? 'Win' : 'Loss' }}
-                    </span>
-                    <span v-else class="pill in-progress">—</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="section-header-row">
+            <h2 class="section-title">{{ activeView === 'matches' ? 'Recent Matches' : 'Leaderboard' }}</h2>
+            <div class="view-toggle">
+              <button :class="['toggle-btn', { active: activeView === 'matches' }]" @click="switchView('matches')">Recent Matches</button>
+              <button :class="['toggle-btn', { active: activeView === 'leaderboard' }]" @click="switchView('leaderboard')">Leaderboard</button>
+            </div>
           </div>
+
+          <!-- Recent Matches table -->
+          <template v-if="activeView === 'matches'">
+            <p v-if="!stats.recentMatches?.length" class="empty-state">No matches played yet.</p>
+            <div v-else class="match-table-scroll">
+              <table class="match-table">
+                <thead>
+                  <tr>
+                    <th>Match</th>
+                    <th>Format</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Placement</th>
+                    <th>Final Life</th>
+                    <th>Result</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="m in stats.recentMatches.filter((m: any) => m.endTime != null)"
+                    :key="m.matchId"
+                    class="match-row"
+                    @click="openMatch(m)"
+                  >
+                    <td>{{ m.matchName }}</td>
+                    <td>{{ m.format }}</td>
+                    <td>{{ formatTime(m.startTime) }}</td>
+                    <td>{{ formatTime(m.endTime) }}</td>
+                    <td><span class="placement-badge">#{{ m.placement }}</span></td>
+                    <td>{{ m.finalLife ?? '—' }}</td>
+                    <td>
+                      <span class="pill" :class="m.isWinner ? 'win' : 'loss'">
+                        {{ m.isWinner ? 'Win' : 'Loss' }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </template>
+
+          <!-- Leaderboard table -->
+          <template v-else>
+            <p v-if="leaderboardLoading" class="empty-state">Loading leaderboard…</p>
+            <p v-else-if="!leaderboard.length" class="empty-state">No data yet. Play some matches!</p>
+            <div v-else class="match-table-scroll">
+              <table class="match-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Player</th>
+                    <th>Games</th>
+                    <th>Wins</th>
+                    <th>Losses</th>
+                    <th>Win %</th>
+                    <th>Avg Place</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(row, i) in leaderboard" :key="row.userId" class="match-row">
+                    <td>
+                      <span v-if="i === 0" class="rank-crown">👑</span>
+                      <span v-else class="placement-badge">#{{ i + 1 }}</span>
+                    </td>
+                    <td class="lb-username">{{ row.username }}</td>
+                    <td>{{ row.totalGames }}</td>
+                    <td><span class="pill win">{{ row.wins }}</span></td>
+                    <td><span class="pill loss">{{ row.losses }}</span></td>
+                    <td>
+                      <span :class="['winpct', row.winRate >= 50 ? 'good' : row.winRate >= 25 ? 'neutral' : 'bad']">
+                        {{ row.winRate }}%
+                      </span>
+                    </td>
+                    <td>{{ row.avgPlacement }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </template>
         </div>
       </template>
 
@@ -109,98 +154,34 @@
         <div class="modal-meta">
           <span class="meta-chip">{{ selectedMatch.format }}</span>
           <span class="meta-chip">▶ {{ formatTime(selectedMatch.startTime) }}</span>
-          <span class="meta-chip">⏹ {{ selectedMatch.endTime ? formatTime(selectedMatch.endTime) : '—' }}</span>
+          <span class="meta-chip">⏹ {{ formatTime(selectedMatch.endTime) }}</span>
         </div>
-
-        <template v-if="selectedMatch.endTime != null">
-          <!-- Finished match details -->
-          <div class="modal-result">
-            <div class="result-row">
-              <span class="result-label">Result</span>
-              <span class="pill" :class="selectedMatch.isWinner ? 'win' : 'loss'">
-                {{ selectedMatch.isWinner ? 'Win 🏆' : 'Loss' }}
-              </span>
-            </div>
-            <div class="result-row">
-              <span class="result-label">Placement</span>
-              <span class="placement-badge">#{{ selectedMatch.placement }}</span>
-            </div>
-            <div class="result-row">
-              <span class="result-label">Final Life</span>
-              <span>{{ selectedMatch.finalLife }}</span>
-            </div>
-            <div class="result-row">
-              <span class="result-label">Starting Life</span>
-              <span>{{ selectedMatch.startingLife }}</span>
-            </div>
+        <div class="modal-result">
+          <div class="result-row">
+            <span class="result-label">Result</span>
+            <span class="pill" :class="selectedMatch.isWinner ? 'win' : 'loss'">
+              {{ selectedMatch.isWinner ? 'Win 🏆' : 'Loss' }}
+            </span>
           </div>
-          <button class="btn-close" @click="selectedMatch = null">Close</button>
-        </template>
-
-        <template v-else>
-          <!-- Unfinished match - still in progress -->
-          <p class="modal-body">This match is still in progress. You can resume where you left off.</p>
-          <div class="modal-actions">
-            <button class="btn-resume" @click="resumeMatch(selectedMatch.matchId)">▶ Resume Match</button>
-            <button class="btn-close" @click="selectedMatch = null">Cancel</button>
+          <div class="result-row">
+            <span class="result-label">Placement</span>
+            <span class="placement-badge">#{{ selectedMatch.placement }}</span>
           </div>
-        </template>
+          <div class="result-row">
+            <span class="result-label">Final Life</span>
+            <span>{{ selectedMatch.finalLife }}</span>
+          </div>
+          <div class="result-row">
+            <span class="result-label">Starting Life</span>
+            <span>{{ selectedMatch.startingLife }}</span>
+          </div>
+        </div>
+        <button class="btn-close" @click="selectedMatch = null">Close</button>
       </div>
     </div>
   </Teleport>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import Sidebar from '../shared/Sidebar.vue'
-import { userService } from '../../services/user.service'
-
-export default defineComponent({
-  name: 'Stats',
-  components: { Sidebar },
-  setup() {
-    const router = useRouter()
-    const stats = ref<any>(null)
-    const loading = ref(true)
-    const selectedMatch = ref<any>(null)
-
-    const winRateClass = computed(() => {
-      if (!stats.value) return 'neutral'
-      if (stats.value.winRate >= 50) return 'good'
-      if (stats.value.winRate >= 25) return 'neutral'
-      return 'bad'
-    })
-
-    function formatTime(t: string | null | undefined): string {
-      if (!t) return '—'
-      // MySQL TIME returns "HH:MM:SS" — trim to "HH:MM"
-      return String(t).slice(0, 5)
-    }
-
-    function openMatch(m: any) {
-      selectedMatch.value = m
-    }
-
-    function resumeMatch(matchId: number) {
-      selectedMatch.value = null
-      router.push(`/match/${matchId}`)
-    }
-
-    onMounted(async () => {
-      try {
-        const res = await userService.getStats()
-        stats.value = res.data
-      } catch {
-        stats.value = null
-      } finally {
-        loading.value = false
-      }
-    })
-
-    return { stats, loading, winRateClass, selectedMatch, openMatch, resumeMatch, formatTime }
-  },
-})
-</script>
+<script lang="ts" src="./stats"></script>
 
 <style scoped src="./stats.css"></style>

@@ -142,6 +142,23 @@ CREATE TABLE InviteCode
             ON DELETE CASCADE
 );
 
+CREATE TABLE Invites
+(
+    pk_invite           BIGINT AUTO_INCREMENT PRIMARY KEY,
+    status              ENUM ('pending', 'accepted', 'declined') NOT NULL DEFAULT 'pending',
+    createdAt           DATETIME DEFAULT CURRENT_TIMESTAMP()     NOT NULL,
+    updatedAt           DATETIME DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),
+    fk_player_invites   BIGINT NOT NULL,
+    fk_player_isInvited BIGINT NOT NULL,
+    fk_match_hosts      BIGINT NOT NULL,
+    CONSTRAINT fkc_player_invites_invite
+        FOREIGN KEY (fk_player_invites)   REFERENCES AppUser (pk_appUser) ON DELETE CASCADE,
+    CONSTRAINT fkc_player_isInvited_invite
+        FOREIGN KEY (fk_player_isInvited) REFERENCES AppUser (pk_appUser) ON DELETE CASCADE,
+    CONSTRAINT fkc_match_hosts_invite
+        FOREIGN KEY (fk_match_hosts)      REFERENCES `Match` (pk_match)   ON DELETE CASCADE
+);
+
 CREATE TABLE RefreshToken
 (
     pk_refreshToken BIGINT AUTO_INCREMENT PRIMARY KEY,

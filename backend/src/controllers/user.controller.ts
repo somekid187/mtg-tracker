@@ -3,7 +3,7 @@ import {
   changePasswordService, requestPasswordResetService,
   sendFriendRequestService, acceptFriendRequestService, rejectFriendRequestService,
   removeFriendService, getFriendsService, getFriendRequestsService,
-  getUserByUsernameService, getUserStatsService,
+  getUserByUsernameService, getUserStatsService, getLeaderboardService,
 } from "../services/user.service";
 
 export async function getUserProfile(req: any, res: any) {
@@ -38,6 +38,11 @@ export async function getUserStats(req: any, res: any) {
     const userId = req.user.userId;
     const result = await getUserStatsService(userId);
     res.status(200).json({ message: "Stats retrieved successfully", data: result.data });
+}
+
+export async function getLeaderboard(_req: any, res: any) {
+    const result = await getLeaderboardService();
+    res.status(200).json({ message: "Leaderboard retrieved successfully", data: result.data });
 }
 
 export async function searchUser(req: any, res: any) {

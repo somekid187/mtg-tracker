@@ -5,16 +5,17 @@ import {
   getUserProfile, updateUserProfile, deleteUserProfile,
   changePassword, requestPasswordReset,
   sendFriendRequest, acceptFriendRequest, rejectFriendRequest,
-  removeFriend, getFriends, getFriendRequests, searchUser, getUserStats,
+  removeFriend, getFriends, getFriendRequests, searchUser, getUserStats, getLeaderboard,
 } from "../controllers/user.controller";
 
 const router = express.Router();
 
 router.get("/profile", authenticateToken, getUserProfile);
 router.get("/stats", authenticateToken, asyncHandler(getUserStats));
+router.get("/leaderboard", authenticateToken, asyncHandler(getLeaderboard));
 router.get("/search", authenticateToken, asyncHandler(searchUser));
-router.put("/profile", authenticateToken, updateUserProfile);
-router.delete("/profile", authenticateToken, deleteUserProfile);
+router.put("/profile", authenticateToken, asyncHandler(updateUserProfile));
+router.delete("/profile", authenticateToken, asyncHandler(deleteUserProfile));
 router.post("/password", changePassword);
 router.post("/password/reset", requestPasswordReset);
 

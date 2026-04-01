@@ -86,7 +86,7 @@ export default {
                     name: this.match.name || undefined,
                     format: this.match.format,
                     startingLife: this.match.startingLife,
-                    startTime: new Date().toTimeString().slice(0, 8),
+                    startTime: new Date().toISOString().slice(0, 19).replace('T', ' '),
                     isTeamMatch: false,
                 });
                 const matchId = matchRes?.data?.matchId;

@@ -33,28 +33,25 @@
       </div>
       <div class="dashboard-row">
         <div class="box recent-matches-box">
-          <h2 class="recent-title">Recent Matches</h2>
+          <h2 class="recent-title">Ongoing Matches</h2>
           <p v-if="!stats" class="recent-empty">Loading…</p>
-          <p v-else-if="!stats.recentMatches || stats.recentMatches.length === 0" class="recent-empty">
-            No matches played yet.
+          <p v-else-if="inProgressMatches.length === 0" class="recent-empty">
+            No ongoing matches.
           </p>
           <div v-else class="recent-list">
             <div
-              v-for="match in stats.recentMatches"
+              v-for="match in inProgressMatches"
               :key="match.matchId"
-              class="recent-row"
-              :class="{ clickable: match.finalLife == null }"
-              @click="match.finalLife == null && router.push('/match/' + match.matchId)"
+              class="recent-row clickable"
+              @click="router.push('/match/' + match.matchId)"
             >
               <div class="recent-info">
                 <span class="recent-name">{{ match.matchName }}</span>
-                <span class="recent-meta">{{ match.format }} &middot; {{ formatDate(match.endTime ?? match.startTime) }}</span>
+                <span class="recent-meta">{{ match.format }} &middot; {{ formatDate(match.startTime) }}</span>
               </div>
               <div class="recent-right">
-                <span class="recent-placement" v-if="match.finalLife != null">#{{ match.placement ?? '—' }}</span>
-                <span class="recent-badge" :class="match.finalLife != null ? (match.isWinner ? 'win' : 'loss') : 'in-progress'">
-                  {{ match.finalLife != null ? (match.isWinner ? 'Win' : 'Loss') : 'In Progress' }}
-                </span>
+                <span class="recent-badge in-progress">In Progress</span>
+                <button class="btn-delete-match" @click.stop="deleteMatch(match)" title="Delete match">✕</button>
               </div>
             </div>
           </div>
@@ -68,6 +65,7 @@
 import { useRouter } from 'vue-router'
 import Sidebar from '../shared/Sidebar.vue'
 import { userService } from '../../services/user.service'
+import { matchService } from '../../services/match.service'
 
 export default {
   components: { Sidebar },
@@ -76,6 +74,11 @@ export default {
       stats: null,
       friendCount: null,
     }
+  },
+  computed: {
+    inProgressMatches() {
+      return this.stats?.recentMatches?.filter(m => !m.endTime) ?? []
+    },
   },
   async mounted() {
     try {
@@ -88,6 +91,17 @@ export default {
     } catch {
       // silently fail — counters stay as '—'
     }
+  },
+  methods: {
+    async deleteMatch(match) {
+      try {
+        await matchService.deleteMatch(match.matchId)
+        localStorage.removeItem(`match_${match.matchId}`)
+        this.stats.recentMatches = this.stats.recentMatches.filter(m => m.matchId !== match.matchId)
+      } catch {
+        // silently fail
+      }
+    },
   },
   setup() {
     const router = useRouter()

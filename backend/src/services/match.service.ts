@@ -24,7 +24,7 @@ export async function createMatchService(req: any) {
   if (!DB_FORMATS.includes(format)) throw createError("INVALID_FORMAT", "Invalid match format");
   if (!startingLife || startingLife <= 0) throw createError("MISSING_FIELDS", "Starting life must be a positive integer");
 
-  const startTime = new Date().toTimeString().slice(0, 8);
+  const startTime = new Date().toISOString().slice(0, 19).replace('T', ' ');
   const connection = await pool.getConnection();
   try {
     await connection.execute(
@@ -97,9 +97,9 @@ export async function joinMatchService(req: any) {
     const placement = (countRows[0]?.cnt ?? 0) + 1;
 
     await connection.execute(
-      "CALL sp_player_create(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @out_response)",
+      "CALL sp_player_create(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @out_response)",
       [match.startingLife, 0, null, placement, 0,
-       match.counterThreshold !== null ? 0 : null, 2, 6, null, userId, null, matchId]
+       match.counterThreshold !== null ? 0 : null, 2, 6, null, userId, null, matchId, null]
     );
     const [playerRows]: any = await connection.query("SELECT @out_response as result");
     const playerResult = JSON.parse(playerRows[0].result);

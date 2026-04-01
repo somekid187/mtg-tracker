@@ -35,8 +35,8 @@ export async function updateUserProfileService(userId: string, data: any) {
   try {
     await connection.execute("CALL sp_user_update(?, ?, ?, @out_response)", [
       userId,
-      data.username,
-      data.email,
+      data.username ?? null,
+      data.email ?? null,
     ]);
     const [rows]: any = await connection.query(
       "SELECT @out_response as result",
@@ -163,6 +163,19 @@ export async function getUserStatsService(userId: string) {
     const [rows]: any = await connection.query("SELECT @out_response as result");
     const result = JSON.parse(rows[0].result);
     if (!result?.success) throw createError(result?.code || "INTERNAL_SERVER_ERROR", result?.message || "Failed to get stats");
+    return { success: true, data: result.data };
+  } finally {
+    connection.release();
+  }
+}
+
+export async function getLeaderboardService() {
+  const connection = await pool.getConnection();
+  try {
+    await connection.execute("CALL sp_leaderboard_get(@out_response)");
+    const [rows]: any = await connection.query("SELECT @out_response as result");
+    const result = JSON.parse(rows[0].result);
+    if (!result?.success) throw createError(result?.code || "INTERNAL_SERVER_ERROR", result?.message || "Failed to get leaderboard");
     return { success: true, data: result.data };
   } finally {
     connection.release();

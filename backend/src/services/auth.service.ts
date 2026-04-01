@@ -148,7 +148,7 @@ export async function loginService(req: any) {
     const result = JSON.parse(rows[0].result);
 
     if (!result || !result.success) {
-      throw createError("INVALID_CREDENTIALS", "Invalid email or password");
+      throw createError(result?.code || "INVALID_CREDENTIALS", result?.message || "Invalid email or password");
     }
 
     const passwordHash = decrypt(result.data.passwordHash);
@@ -261,8 +261,16 @@ export async function refreshService(req: any) {
 
     const userId = token.fk_appUser_refreshes;
 
+    // Fetch username so the refreshed access token has the same claims as the login token
+    const [userRows]: any = await connection.execute(
+      "SELECT username FROM AppUser WHERE pk_appUser = ?",
+      [userId],
+    );
+    const username = userRows?.[0]?.username ?? null;
+
     const newAccessToken = generateAccessToken({
-      userId: userId,
+      userId,
+      ...(username && { username }),
     });
 
     const newRefreshToken = generateRefreshToken();
@@ -292,57 +300,19 @@ export async function refreshService(req: any) {
     );
 
     const tokenResult = JSON.parse(tokenRows[0].result);
-    
+
     if (!tokenResult || !tokenResult.success) {
       if (tokenResult?.code === 'TOKEN_ALREADY_ROTATED') {
-        // A concurrent request already won the rotation race — issue a fresh standalone token.
-        // The old token is already revoked, so we just create a new one with no rotation chain.
-        const retryToken = generateRefreshToken();
-        const retryHash = hashToken(retryToken);
-        const retryExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-        await connection.execute(
-          "CALL sp_refreshToken_create(?, ?, ?, ?, ?, ?, ?, @out_response)",
-          [userId, retryHash, ip, ip, device, retryExpiresAt, null],
-        );
-
-        const [retryRows]: any = await connection.query("SELECT @out_response as result");
-        const retryResult = JSON.parse(retryRows[0].result);
-
-        if (!retryResult || !retryResult.success) {
-          throw createError(retryResult?.code || "TOKEN_CREATION_FAILED",
-            retryResult?.message || "Failed to create refresh token");
-        }
-
-        return {
-          success: true,
-          data: { accessToken: newAccessToken, refreshToken: retryToken },
-          error: null,
-        };
+        // A concurrent request already rotated (and revoked) this token.
+        // Reject so the client retries with the new token from the winning request.
+        throw createError("TOKEN_ALREADY_ROTATED",
+          "Refresh token was already rotated by a concurrent request. Please retry.");
       }
       throw createError(tokenResult?.code || "TOKEN_CREATION_FAILED", tokenResult?.message 
         || "Failed to create refresh token");
     }
 
-    // Now revoke the old token
-    await connection.execute("CALL sp_refreshToken_revoke(?,?, @out_response)", [
-      tokenHash, userId,
-    ]);
-    
-    const [revRows]: any = await connection.query(
-      "SELECT @out_response as result",
-    );
-    const revResult = JSON.parse(revRows[0].result);
-    
-    // Make token revocation idempotent - if token is already revoked, that's fine
-    if (!revResult || !revResult.success) {
-      if (revResult.code === 'VALIDATION_TOKEN_ALREADY_REVOKED') {
-        // This is not actually an error - the token is already in the desired state
-      } else {
-        throw createError(revResult?.code || "TOKEN_REVOCATION_FAILED", revResult?.message 
-          || "Failed to revoke refresh token");
-      }
-    }
+    // Old token is already revoked inside sp_refreshToken_create's transaction
 
     return {
       success: true,

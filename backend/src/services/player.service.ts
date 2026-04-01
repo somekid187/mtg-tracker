@@ -11,7 +11,7 @@ export async function createPlayerService(req: any) {
   const {
     startingLife, isWinner, tax, placement, killCounter, poisonCounter,
     minPlayers, maxPlayers, fk_guest_enters, fk_appUser_participates,
-    fk_team_isIncluded, fk_match_isPlayedIn
+    fk_team_isIncluded, fk_match_isPlayedIn, fk_deck_uses
   } = req.body;
 
   if (!startingLife) throw createError("MISSING_FIELDS", "Starting life is required");
@@ -21,11 +21,11 @@ export async function createPlayerService(req: any) {
   const connection = await pool.getConnection();
   try {
     await connection.execute(
-      "CALL sp_player_create(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @out_response)",
+      "CALL sp_player_create(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @out_response)",
       [startingLife, isWinner ?? 0, tax ?? null, placement, killCounter ?? 0,
        poisonCounter ?? null, minPlayers ?? 2, maxPlayers ?? 6,
        fk_guest_enters ?? null, fk_appUser_participates ?? null,
-       fk_team_isIncluded ?? null, fk_match_isPlayedIn]
+       fk_team_isIncluded ?? null, fk_match_isPlayedIn, fk_deck_uses ?? null]
     );
     const [rows]: any = await connection.query("SELECT @out_response as result");
     const result = JSON.parse(rows[0].result);

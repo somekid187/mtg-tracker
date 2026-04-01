@@ -121,3 +121,62 @@
 .auth-footer a:hover {
   color: #ffc107;
 }
+
+.password-group {
+  position: relative;
+}
+
+.password-requirements {
+  list-style: none;
+  margin: 0;
+  padding: 0.75em 1em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  position: absolute;
+  left: calc(100% + 1em);
+  top: 0;
+  background-color: #3b3d42;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.password-requirements::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 1.5em;
+  border: 6px solid transparent;
+  border-right-color: #3b3d42;
+}
+
+.requirement {
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.requirement.met {
+  color: #6bffb8;
+}
+
+.requirement.met::before {
+  content: '\2713  ';
+}
+
+.requirement.unmet {
+  color: #777;
+}
+
+.requirement.unmet::before {
+  content: '\2717  ';
+}
+
+.password-mismatch {
+  margin: 0.25em 0 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #ff6b6b;
+}

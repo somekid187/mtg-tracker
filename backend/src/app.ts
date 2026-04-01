@@ -9,6 +9,9 @@ import playerRoutes from "./routes/player.routes";
 import guestRoutes from "./routes/guest.routes";
 import commanderDamageRoutes from "./routes/commanderDamage.routes";
 import inviteCodeRoutes from "./routes/inviteCode.routes";
+import inviteRoutes from "./routes/invite.routes";
+import eventRoutes from "./routes/event.routes";
+import deckRoutes from "./routes/deck.routes";
 import errorHandler from "./middleware/error.middleware";
 
 const app = express();
@@ -43,6 +46,9 @@ app.use("/player", playerRoutes);
 app.use("/guest", guestRoutes);
 app.use("/commander-damage", commanderDamageRoutes);
 app.use("/invite-code", inviteCodeRoutes);
+app.use("/invites", inviteRoutes);
+app.use("/event", eventRoutes);
+app.use("/deck", deckRoutes);
 
 // Health Check Endpoint
 app.get('/health', (_req, res) => {

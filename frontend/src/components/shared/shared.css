@@ -30,6 +30,10 @@
   color: #ffd170;
   font-family: 'Poppins', sans-serif;
 }
+.header a {
+  text-decoration: none;
+  font-weight: 600;
+}
 
 
 
@@ -156,7 +160,7 @@
   text-decoration: none;
   color: white;
   width: 100%;
-  height: 6.25em;
+  height: 5.25em;
   transition: background-color 0.3s ease;
 }
 
@@ -230,4 +234,21 @@
 
 .sidebar-footer button:hover {
   background-color: #ffc107;
+}
+
+/* -- Sidebar notification badge ------- */
+.nav-badge {
+  background-color: #ff6b6b;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1em 0.5em;
+  line-height: 1.4;
+  margin-left: auto;
+}
+
+/* -- Make all sidebar nav icons white -- */
+.nav-link .nav-icon {
+  filter: brightness(0) invert(1);
 }

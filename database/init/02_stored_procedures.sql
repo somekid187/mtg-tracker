@@ -782,7 +782,7 @@ CREATE PROCEDURE sp_match_create(
     IN in_description TEXT,
     IN in_format VARCHAR(255),
     IN in_startingLife INT,
-    IN in_startTime TIME,
+    IN in_startTime DATETIME,
     IN in_isTeamMatch TINYINT,
     IN in_commanderThreshold INT,
     IN in_counterThreshold INT,
@@ -919,8 +919,8 @@ CREATE PROCEDURE sp_match_update(
     IN in_description TEXT,
     IN in_format VARCHAR(255),
     IN in_startingLife INT,
-    IN in_startTime TIME,
-    IN in_endTime TIME,
+    IN in_startTime DATETIME,
+    IN in_endTime DATETIME,
     IN in_isTeamMatch TINYINT,
     IN in_commanderThreshold INT,
     IN in_counterThreshold INT,
@@ -1023,6 +1023,7 @@ CREATE PROCEDURE sp_player_create(
     IN in_fk_appUser_participates BIGINT,
     IN in_fk_team_isIncluded INT,
     IN in_fk_match_isPlayedIn BIGINT,
+    IN in_fk_deck_uses BIGINT,
     OUT out_response JSON
 )
 proc:
@@ -1079,11 +1080,12 @@ BEGIN
     END IF;
 
     INSERT INTO Player (startingLife, isWinner, tax, placement, killCounter, poisonCounter, minPlayers,
-                        maxPlayers, fk_guest_enters, fk_appUser_participates, fk_team_isIncluded, fk_match_isPlayedIn)
+                        maxPlayers, fk_guest_enters, fk_appUser_participates, fk_team_isIncluded, fk_match_isPlayedIn,
+                        fk_deck_uses)
     VALUES (in_startingLife, in_isWinner, in_tax, in_placement,
             in_killCounter, in_poisonCounter, in_minPlayers, in_maxPlayers,
             in_fk_guest_enters, in_fk_appUser_participates, in_fk_team_isIncluded,
-            in_fk_match_isPlayedIn);
+            in_fk_match_isPlayedIn, in_fk_deck_uses);
 
     SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Player created successfully.', 'code', 'SUCCESS_CREATED', 'data', JSON_OBJECT('pk_player', LAST_INSERT_ID()));
 
@@ -1529,6 +1531,44 @@ BEGIN
         'success', TRUE,
         'message', 'Refresh token revoked successfully.',
         'code',    'SUCCESS_OK'
+    );
+END $$
+
+DROP PROCEDURE IF EXISTS sp_refreshToken_cleanup $$
+
+CREATE PROCEDURE sp_refreshToken_cleanup(
+    OUT out_response JSON
+)
+proc:
+BEGIN
+    DECLARE v_deleted INT DEFAULT 0;
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+            ROLLBACK;
+            SET out_response = JSON_OBJECT(
+                'success', FALSE,
+                'message', 'An error occurred while cleaning up refresh tokens.',
+                'code',    'INTERNAL_SERVER_ERROR'
+            );
+        END;
+
+    START TRANSACTION;
+
+    -- Delete tokens that are expired or revoked
+    DELETE FROM RefreshToken
+    WHERE expiresAt < NOW()
+       OR revokedAt IS NOT NULL;
+
+    SET v_deleted = ROW_COUNT();
+
+    COMMIT;
+
+    SET out_response = JSON_OBJECT(
+        'success', TRUE,
+        'message', CONCAT('Cleaned up ', v_deleted, ' expired/revoked refresh tokens.'),
+        'code',    'SUCCESS_OK',
+        'data',    JSON_OBJECT('deletedCount', v_deleted)
     );
 END $$
 
@@ -2037,6 +2077,12 @@ proc:BEGIN
         LEAVE proc;
     END IF;
 
+    IF EXISTS (SELECT 1 FROM AppUser WHERE email = in_email AND emailVerified = 0) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Please verify your email before logging in.',
+                           'code', 'EMAIL_NOT_VERIFIED');
+        LEAVE proc;
+    END IF;
+
     SELECT JSON_OBJECT(
         'success', TRUE,
         'message', 'Password fetched successfully.',
@@ -2211,5 +2257,718 @@ proc:BEGIN
         LIMIT 10 OFFSET offset
     ) AS users;
 END $$
+
+-- -------------------------
+-- Invites
+-- -------------------------
+
+DROP PROCEDURE IF EXISTS sp_invite_send $$
+CREATE PROCEDURE sp_invite_send(
+    IN in_fk_inviter   BIGINT,
+    IN in_fk_invitee   BIGINT,
+    IN in_fk_match     BIGINT,
+    OUT out_response JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while sending the invite.', 'code', 'INTERNAL_SERVER_ERROR');
+        END;
+
+    IF in_fk_inviter IS NULL OR in_fk_invitee IS NULL OR in_fk_match IS NULL THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Inviter, invitee and match IDs are required.', 'code', 'VALIDATION_ERROR');
+        LEAVE proc;
+    END IF;
+
+    IF in_fk_inviter = in_fk_invitee THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'You cannot invite yourself.', 'code', 'VALIDATION_ERROR');
+        LEAVE proc;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM AppUser WHERE pk_appUser = in_fk_invitee) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Invitee user not found.', 'code', 'USER_NOT_FOUND');
+        LEAVE proc;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM `Match` WHERE pk_match = in_fk_match) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match not found.', 'code', 'MATCH_NOT_FOUND');
+        LEAVE proc;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM Invites
+        WHERE fk_player_isInvited = in_fk_invitee
+          AND fk_match_hosts = in_fk_match
+          AND status = 'pending'
+    ) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'A pending invite for this user already exists for this match.', 'code', 'INVITE_EXISTS');
+        LEAVE proc;
+    END IF;
+
+    INSERT INTO Invites (fk_player_invites, fk_player_isInvited, fk_match_hosts, status)
+    VALUES (in_fk_inviter, in_fk_invitee, in_fk_match, 'pending');
+
+    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Invite sent.', 'code', 'SUCCESS_CREATED', 'data', JSON_OBJECT('pk_invite', LAST_INSERT_ID()));
+END $$
+
+DROP PROCEDURE IF EXISTS sp_invite_accept $$
+CREATE PROCEDURE sp_invite_accept(
+    IN in_pk_invite    BIGINT,
+    IN in_fk_invitee   BIGINT,
+    OUT out_response JSON
+)
+proc:BEGIN
+    DECLARE v_status    VARCHAR(20);
+    DECLARE v_invitee   BIGINT;
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while accepting the invite.', 'code', 'INTERNAL_SERVER_ERROR');
+        END;
+
+    SELECT status, fk_player_isInvited
+    INTO v_status, v_invitee
+    FROM Invites
+    WHERE pk_invite = in_pk_invite;
+
+    IF v_status IS NULL THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Invite not found.', 'code', 'INVITE_NOT_FOUND');
+        LEAVE proc;
+    END IF;
+
+    IF v_invitee <> in_fk_invitee THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Only the invited user can accept this invite.', 'code', 'UNAUTHORIZED');
+        LEAVE proc;
+    END IF;
+
+    IF v_status <> 'pending' THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'This invite has already been responded to.', 'code', 'INVITE_ALREADY_RESPONDED');
+        LEAVE proc;
+    END IF;
+
+    UPDATE Invites SET status = 'accepted', updatedAt = NOW() WHERE pk_invite = in_pk_invite;
+
+    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Invite accepted.', 'code', 'SUCCESS_UPDATED', 'data', JSON_OBJECT('pk_invite', in_pk_invite));
+END $$
+
+DROP PROCEDURE IF EXISTS sp_invite_decline $$
+CREATE PROCEDURE sp_invite_decline(
+    IN in_pk_invite    BIGINT,
+    IN in_fk_invitee   BIGINT,
+    OUT out_response JSON
+)
+proc:BEGIN
+    DECLARE v_status    VARCHAR(20);
+    DECLARE v_invitee   BIGINT;
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while declining the invite.', 'code', 'INTERNAL_SERVER_ERROR');
+        END;
+
+    SELECT status, fk_player_isInvited
+    INTO v_status, v_invitee
+    FROM Invites
+    WHERE pk_invite = in_pk_invite;
+
+    IF v_status IS NULL THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Invite not found.', 'code', 'INVITE_NOT_FOUND');
+        LEAVE proc;
+    END IF;
+
+    IF v_invitee <> in_fk_invitee THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Only the invited user can decline this invite.', 'code', 'UNAUTHORIZED');
+        LEAVE proc;
+    END IF;
+
+    IF v_status <> 'pending' THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'This invite has already been responded to.', 'code', 'INVITE_ALREADY_RESPONDED');
+        LEAVE proc;
+    END IF;
+
+    UPDATE Invites SET status = 'declined', updatedAt = NOW() WHERE pk_invite = in_pk_invite;
+
+    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Invite declined.', 'code', 'SUCCESS_UPDATED', 'data', JSON_OBJECT('pk_invite', in_pk_invite));
+END $$
+
+DROP PROCEDURE IF EXISTS sp_invite_cancel $$
+CREATE PROCEDURE sp_invite_cancel(
+    IN in_pk_invite    BIGINT,
+    IN in_fk_inviter   BIGINT,
+    OUT out_response JSON
+)
+proc:BEGIN
+    DECLARE v_inviter   BIGINT;
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while cancelling the invite.', 'code', 'INTERNAL_SERVER_ERROR');
+        END;
+
+    SELECT fk_player_invites INTO v_inviter FROM Invites WHERE pk_invite = in_pk_invite;
+
+    IF v_inviter IS NULL THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Invite not found.', 'code', 'INVITE_NOT_FOUND');
+        LEAVE proc;
+    END IF;
+
+    IF v_inviter <> in_fk_inviter THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Only the inviter can cancel this invite.', 'code', 'UNAUTHORIZED');
+        LEAVE proc;
+    END IF;
+
+    DELETE FROM Invites WHERE pk_invite = in_pk_invite;
+
+    SET out_response = JSON_OBJECT('success', TRUE, 'message', 'Invite cancelled.', 'code', 'SUCCESS_DELETED', 'data', JSON_OBJECT('pk_invite', in_pk_invite));
+END $$
+
+DROP PROCEDURE IF EXISTS sp_invites_get_pending $$
+CREATE PROCEDURE sp_invites_get_pending(
+    IN in_fk_invitee   BIGINT,
+    OUT out_response JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching pending invites.', 'code', 'INTERNAL_SERVER_ERROR');
+        END;
+
+    SET out_response = (
+        SELECT JSON_OBJECT(
+            'success', TRUE,
+            'message', 'Pending invites fetched successfully.',
+            'code', 'SUCCESS',
+            'data', COALESCE(JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'pk_invite',       i.pk_invite,
+                    'status',          i.status,
+                    'createdAt',       i.createdAt,
+                    'matchId',         i.fk_match_hosts,
+                    'matchName',       m.name,
+                    'matchFormat',     m.format,
+                    'startingLife',    m.startingLife,
+                    'inviterId',       i.fk_player_invites,
+                    'inviterUsername', au.username
+                )
+            ), JSON_ARRAY())
+        )
+        FROM Invites i
+        JOIN `Match`  m  ON m.pk_match    = i.fk_match_hosts
+        JOIN AppUser  au ON au.pk_appUser  = i.fk_player_invites
+        WHERE i.fk_player_isInvited = in_fk_invitee
+          AND i.status = 'pending'
+    );
+END $$
+
+DROP PROCEDURE IF EXISTS sp_invites_get_by_match $$
+CREATE PROCEDURE sp_invites_get_by_match(
+    IN in_fk_match     BIGINT,
+    IN in_fk_inviter   BIGINT,
+    OUT out_response JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching match invites.', 'code', 'INTERNAL_SERVER_ERROR');
+        END;
+
+    IF NOT EXISTS (SELECT 1 FROM `Match` WHERE pk_match = in_fk_match AND fk_appUser_creates = in_fk_inviter) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match not found or you are not the host.', 'code', 'UNAUTHORIZED');
+        LEAVE proc;
+    END IF;
+
+    SET out_response = (
+        SELECT JSON_OBJECT(
+            'success', TRUE,
+            'message', 'Match invites fetched successfully.',
+            'code', 'SUCCESS',
+            'data', COALESCE(JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'pk_invite',       i.pk_invite,
+                    'status',          i.status,
+                    'createdAt',       i.createdAt,
+                    'updatedAt',       i.updatedAt,
+                    'inviteeId',       i.fk_player_isInvited,
+                    'inviteeUsername', au.username
+                )
+            ), JSON_ARRAY())
+        )
+        FROM Invites i
+        JOIN AppUser au ON au.pk_appUser = i.fk_player_isInvited
+        WHERE i.fk_match_hosts = in_fk_match
+    );
+END $$
+
+
+
+-- -- Event procedures ----------------------------------------------------------
+
+
+-- __ Event stored procedures ___________________________________________
+
+DROP PROCEDURE IF EXISTS sp_event_create $$
+
+CREATE PROCEDURE sp_event_create(
+    IN  in_name          VARCHAR(255),
+    IN  in_description   TEXT,
+    IN  in_fk_appUser    BIGINT,
+    OUT out_response     JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while creating the event.', 'code', 'INTERNAL_SERVER_ERROR');
+    END;
+
+    IF in_name IS NULL OR TRIM(in_name) = '' THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Event name cannot be empty.', 'code', 'VALIDATION_ERROR');
+        LEAVE proc;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM AppUser WHERE pk_appUser = in_fk_appUser) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'User not found.', 'code', 'USER_NOT_FOUND');
+        LEAVE proc;
+    END IF;
+
+    INSERT INTO `Event` (name, description, fk_appUser_organizes)
+    VALUES (in_name, in_description, in_fk_appUser);
+
+    SET out_response = JSON_OBJECT(
+        'success', TRUE,
+        'message', 'Event created successfully.',
+        'code', 'SUCCESS_CREATED',
+        'data', JSON_OBJECT('pk_event', LAST_INSERT_ID())
+    );
+END $$
+
+DROP PROCEDURE IF EXISTS sp_event_get_by_id $$
+
+CREATE PROCEDURE sp_event_get_by_id(
+    IN  in_pk_event   BIGINT,
+    OUT out_response  JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while retrieving the event.', 'code', 'INTERNAL_SERVER_ERROR');
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM `Event` WHERE pk_event = in_pk_event) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Event not found.', 'code', 'EVENT_NOT_FOUND');
+        LEAVE proc;
+    END IF;
+
+    SET out_response = (
+        SELECT JSON_OBJECT(
+            'success', TRUE,
+            'message', 'Event retrieved successfully.',
+            'code', 'SUCCESS',
+            'data', JSON_OBJECT(
+                'pk_event',          e.pk_event,
+                'name',              e.name,
+                'description',       e.description,
+                'createdAt',         e.createdAt,
+                'organizerId',       e.fk_appUser_organizes,
+                'organizerUsername', au.username,
+                'matchCount',        (SELECT COUNT(*) FROM EventMatch em WHERE em.fk_event_contains = e.pk_event)
+            )
+        )
+        FROM `Event` e
+        JOIN AppUser au ON e.fk_appUser_organizes = au.pk_appUser
+        WHERE e.pk_event = in_pk_event
+        LIMIT 1
+    );
+END $$
+
+DROP PROCEDURE IF EXISTS sp_events_get_by_user $$
+
+CREATE PROCEDURE sp_events_get_by_user(
+    IN  in_userId     BIGINT,
+    OUT out_response  JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while retrieving events.', 'code', 'INTERNAL_SERVER_ERROR');
+    END;
+
+    SET out_response = JSON_OBJECT(
+        'success', TRUE,
+        'message', 'Events retrieved successfully.',
+        'code', 'SUCCESS',
+        'data', IFNULL(
+            (SELECT JSON_ARRAYAGG(obj) FROM (
+                SELECT JSON_OBJECT(
+                    'pk_event',    e.pk_event,
+                    'name',        e.name,
+                    'description', e.description,
+                    'createdAt',   e.createdAt,
+                    'matchCount',  (SELECT COUNT(*) FROM EventMatch em WHERE em.fk_event_contains = e.pk_event)
+                ) AS obj
+                FROM `Event` e
+                WHERE e.fk_appUser_organizes = in_userId
+                ORDER BY e.createdAt DESC
+            ) subq),
+            JSON_ARRAY()
+        )
+    );
+END $$
+
+DROP PROCEDURE IF EXISTS sp_event_update $$
+
+CREATE PROCEDURE sp_event_update(
+    IN  in_pk_event     BIGINT,
+    IN  in_name         VARCHAR(255),
+    IN  in_description  TEXT,
+    IN  in_userId       BIGINT,
+    OUT out_response    JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while updating the event.', 'code', 'INTERNAL_SERVER_ERROR');
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM `Event` WHERE pk_event = in_pk_event AND fk_appUser_organizes = in_userId) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Event not found or you do not have permission.', 'code', 'EVENT_NOT_FOUND');
+        LEAVE proc;
+    END IF;
+
+    UPDATE `Event`
+    SET
+        name        = COALESCE(in_name, name),
+        description = COALESCE(in_description, description)
+    WHERE pk_event = in_pk_event;
+
+    SET out_response = JSON_OBJECT(
+        'success', TRUE,
+        'message', 'Event updated successfully.',
+        'code', 'SUCCESS',
+        'data', JSON_OBJECT('pk_event', in_pk_event)
+    );
+END $$
+
+DROP PROCEDURE IF EXISTS sp_event_delete $$
+
+CREATE PROCEDURE sp_event_delete(
+    IN  in_pk_event   BIGINT,
+    IN  in_userId     BIGINT,
+    OUT out_response  JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while deleting the event.', 'code', 'INTERNAL_SERVER_ERROR');
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM `Event` WHERE pk_event = in_pk_event AND fk_appUser_organizes = in_userId) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Event not found or you do not have permission.', 'code', 'EVENT_NOT_FOUND');
+        LEAVE proc;
+    END IF;
+
+    DELETE FROM `Event` WHERE pk_event = in_pk_event;
+
+    SET out_response = JSON_OBJECT(
+        'success', TRUE,
+        'message', 'Event deleted successfully.',
+        'code', 'SUCCESS',
+        'data', JSON_OBJECT('pk_event', in_pk_event)
+    );
+END $$
+
+DROP PROCEDURE IF EXISTS sp_event_match_add $$
+
+CREATE PROCEDURE sp_event_match_add(
+    IN  in_eventId    BIGINT,
+    IN  in_matchId    BIGINT,
+    IN  in_userId     BIGINT,
+    OUT out_response  JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while adding the match to the event.', 'code', 'INTERNAL_SERVER_ERROR');
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM `Event` WHERE pk_event = in_eventId AND fk_appUser_organizes = in_userId) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Event not found or you do not have permission.', 'code', 'EVENT_NOT_FOUND');
+        LEAVE proc;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM `Match` WHERE pk_match = in_matchId) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match not found.', 'code', 'MATCH_NOT_FOUND');
+        LEAVE proc;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM EventMatch WHERE fk_event_contains = in_eventId AND fk_match_inEvent = in_matchId) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match is already in this event.', 'code', 'ALREADY_IN_EVENT');
+        LEAVE proc;
+    END IF;
+
+    INSERT INTO EventMatch (fk_event_contains, fk_match_inEvent)
+    VALUES (in_eventId, in_matchId);
+
+    SET out_response = JSON_OBJECT(
+        'success', TRUE,
+        'message', 'Match added to event successfully.',
+        'code', 'SUCCESS_CREATED',
+        'data', JSON_OBJECT('pk_eventMatch', LAST_INSERT_ID())
+    );
+END $$
+
+DROP PROCEDURE IF EXISTS sp_event_match_remove $$
+
+CREATE PROCEDURE sp_event_match_remove(
+    IN  in_eventId    BIGINT,
+    IN  in_matchId    BIGINT,
+    IN  in_userId     BIGINT,
+    OUT out_response  JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred.', 'code', 'INTERNAL_SERVER_ERROR');
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM `Event` WHERE pk_event = in_eventId AND fk_appUser_organizes = in_userId) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Event not found or you do not have permission.', 'code', 'EVENT_NOT_FOUND');
+        LEAVE proc;
+    END IF;
+
+    DELETE FROM EventMatch WHERE fk_event_contains = in_eventId AND fk_match_inEvent = in_matchId;
+
+    SET out_response = JSON_OBJECT(
+        'success', TRUE,
+        'message', 'Match removed from event.',
+        'code', 'SUCCESS',
+        'data', JSON_OBJECT('eventId', in_eventId, 'matchId', in_matchId)
+    );
+END $$
+
+
+
+-- __ Deck stored procedures ____________________________________________
+
+DROP PROCEDURE IF EXISTS sp_deck_create $$
+
+CREATE PROCEDURE sp_deck_create(
+    IN  in_name         VARCHAR(255),
+    IN  in_commander    VARCHAR(255),
+    IN  in_description  TEXT,
+    IN  in_userId       BIGINT,
+    OUT out_response    JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while creating the deck.', 'code', 'INTERNAL_SERVER_ERROR');
+    END;
+
+    IF in_name IS NULL OR TRIM(in_name) = '' THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Deck name cannot be empty.', 'code', 'VALIDATION_ERROR');
+        LEAVE proc;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM AppUser WHERE pk_appUser = in_userId) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'User not found.', 'code', 'USER_NOT_FOUND');
+        LEAVE proc;
+    END IF;
+
+    INSERT INTO Deck (name, commander, description, fk_appUser_owns)
+    VALUES (in_name, in_commander, in_description, in_userId);
+
+    SET out_response = JSON_OBJECT(
+        'success', TRUE,
+        'message', 'Deck created successfully.',
+        'code', 'SUCCESS_CREATED',
+        'data', JSON_OBJECT('pk_deck', LAST_INSERT_ID())
+    );
+END $$
+
+DROP PROCEDURE IF EXISTS sp_deck_get_by_id $$
+
+CREATE PROCEDURE sp_deck_get_by_id(
+    IN  in_pk_deck    BIGINT,
+    OUT out_response  JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred.', 'code', 'INTERNAL_SERVER_ERROR');
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM Deck WHERE pk_deck = in_pk_deck) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Deck not found.', 'code', 'DECK_NOT_FOUND');
+        LEAVE proc;
+    END IF;
+
+    SET out_response = (
+        SELECT JSON_OBJECT(
+            'success', TRUE,
+            'message', 'Deck retrieved successfully.',
+            'code', 'SUCCESS',
+            'data', JSON_OBJECT(
+                'pk_deck',     d.pk_deck,
+                'name',        d.name,
+                'commander',   d.commander,
+                'description', d.description,
+                'createdAt',   d.createdAt,
+                'userId',      d.fk_appUser_owns
+            )
+        )
+        FROM Deck d
+        WHERE d.pk_deck = in_pk_deck
+        LIMIT 1
+    );
+END $$
+
+DROP PROCEDURE IF EXISTS sp_decks_get_by_user $$
+
+CREATE PROCEDURE sp_decks_get_by_user(
+    IN  in_userId     BIGINT,
+    OUT out_response  JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred.', 'code', 'INTERNAL_SERVER_ERROR');
+    END;
+
+    SET out_response = JSON_OBJECT(
+        'success', TRUE,
+        'message', 'Decks retrieved successfully.',
+        'code', 'SUCCESS',
+        'data', IFNULL(
+            (SELECT JSON_ARRAYAGG(obj) FROM (
+                SELECT JSON_OBJECT(
+                    'pk_deck',     d.pk_deck,
+                    'name',        d.name,
+                    'commander',   d.commander,
+                    'description', d.description,
+                    'createdAt',   d.createdAt
+                ) AS obj
+                FROM Deck d
+                WHERE d.fk_appUser_owns = in_userId
+                ORDER BY d.createdAt DESC
+            ) subq),
+            JSON_ARRAY()
+        )
+    );
+END $$
+
+DROP PROCEDURE IF EXISTS sp_deck_update $$
+
+CREATE PROCEDURE sp_deck_update(
+    IN  in_pk_deck      BIGINT,
+    IN  in_name         VARCHAR(255),
+    IN  in_commander    VARCHAR(255),
+    IN  in_description  TEXT,
+    IN  in_userId       BIGINT,
+    OUT out_response    JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred.', 'code', 'INTERNAL_SERVER_ERROR');
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM Deck WHERE pk_deck = in_pk_deck AND fk_appUser_owns = in_userId) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Deck not found or permission denied.', 'code', 'DECK_NOT_FOUND');
+        LEAVE proc;
+    END IF;
+
+    UPDATE Deck
+    SET name        = COALESCE(in_name, name),
+        commander   = COALESCE(in_commander, commander),
+        description = COALESCE(in_description, description)
+    WHERE pk_deck = in_pk_deck;
+
+    SET out_response = JSON_OBJECT(
+        'success', TRUE,
+        'message', 'Deck updated successfully.',
+        'code', 'SUCCESS',
+        'data', JSON_OBJECT('pk_deck', in_pk_deck)
+    );
+END $$
+
+DROP PROCEDURE IF EXISTS sp_deck_delete $$
+
+CREATE PROCEDURE sp_deck_delete(
+    IN  in_pk_deck    BIGINT,
+    IN  in_userId     BIGINT,
+    OUT out_response  JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred.', 'code', 'INTERNAL_SERVER_ERROR');
+    END;
+
+    IF NOT EXISTS (SELECT 1 FROM Deck WHERE pk_deck = in_pk_deck AND fk_appUser_owns = in_userId) THEN
+        SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Deck not found or permission denied.', 'code', 'DECK_NOT_FOUND');
+        LEAVE proc;
+    END IF;
+
+    DELETE FROM Deck WHERE pk_deck = in_pk_deck;
+
+    SET out_response = JSON_OBJECT(
+        'success', TRUE,
+        'message', 'Deck deleted successfully.',
+        'code', 'SUCCESS',
+        'data', JSON_OBJECT('pk_deck', in_pk_deck)
+    );
+END $$
+
+DROP PROCEDURE IF EXISTS sp_leaderboard_get $$
+
+CREATE PROCEDURE sp_leaderboard_get(
+    OUT out_response JSON
+)
+proc:BEGIN
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+        BEGIN
+            SET out_response = JSON_OBJECT('success', FALSE, 'message', 'An error occurred while fetching the leaderboard.', 'code', 'INTERNAL_SERVER_ERROR');
+        END;
+
+    SET out_response = JSON_OBJECT(
+        'success', TRUE,
+        'message', 'Leaderboard fetched successfully.',
+        'code', 'SUCCESS_OK',
+        'data', (
+            SELECT COALESCE(JSON_ARRAYAGG(
+                JSON_OBJECT(
+                    'userId',       u.pk_appUser,
+                    'username',     u.username,
+                    'totalGames',   stats.totalGames,
+                    'wins',         stats.wins,
+                    'losses',       stats.losses,
+                    'winRate',      stats.winRate,
+                    'avgPlacement', stats.avgPlacement
+                )
+            ), JSON_ARRAY())
+            FROM (
+                SELECT
+                    p.fk_appUser_participates                                                            AS userId,
+                    COUNT(p.pk_player)                                                                   AS totalGames,
+                    SUM(p.isWinner = 1 AND p.finalLife IS NOT NULL)                                      AS wins,
+                    SUM(p.isWinner = 0 AND p.finalLife IS NOT NULL)                                      AS losses,
+                    ROUND(
+                        SUM(p.isWinner = 1 AND p.finalLife IS NOT NULL) /
+                        NULLIF(SUM(p.finalLife IS NOT NULL), 0) * 100
+                    , 2)                                                                                 AS winRate,
+                    ROUND(AVG(p.placement), 2)                                                           AS avgPlacement
+                FROM Player p
+                WHERE p.fk_appUser_participates IS NOT NULL
+                  AND p.finalLife IS NOT NULL
+                GROUP BY p.fk_appUser_participates
+                HAVING totalGames > 0
+                ORDER BY wins DESC, winRate DESC
+                LIMIT 50
+            ) AS stats
+            JOIN AppUser u ON u.pk_appUser = stats.userId
+        )
+    );
+END $$
+
 
 DELIMITER ;

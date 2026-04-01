@@ -289,3 +289,61 @@
   font-size: 0.9rem;
   margin: 0;
 }
+
+/* ── Section header with toggle ── */
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  flex-wrap: wrap;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 0;
+  background: #292b2d;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.toggle-btn {
+  background: transparent;
+  border: none;
+  color: #888;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.3em 0.9em;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.toggle-btn.active {
+  background: #ffd170;
+  color: #1a1b1e;
+}
+
+.toggle-btn:not(.active):hover {
+  color: #ffffff;
+}
+
+/* ── Leaderboard ──────────── */
+.rank-crown {
+  font-size: 1.1rem;
+}
+
+.lb-username {
+  font-weight: 600;
+  color: #fefefe;
+}
+
+.winpct {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.winpct.good    { color: #6bffb8; }
+.winpct.neutral { color: #ffd170; }
+.winpct.bad     { color: #ff6b6b; }

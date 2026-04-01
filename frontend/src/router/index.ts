@@ -7,6 +7,7 @@ const router = createRouter({
     { path: '/login', component: () => import('../components/auth/Login.vue'), meta: { public: true } },
     { path: '/register', component: () => import('../components/auth/Register.vue'), meta: { public: true } },
     { path: '/activate', component: () => import('../components/auth/Activate.vue'), meta: { public: true } },
+    { path: '/reset-password', component: () => import('../components/auth/ResetPassword.vue'), meta: { public: true } },
     { path: '/match', component: () => import('../components/match/Match.vue') },
     { path: '/match/join', component: () => import('../components/match/JoinMatch.vue') },
     { path: '/match/setup/:id', component: () => import('../components/match/SetupMatch.vue') },
@@ -16,6 +17,9 @@ const router = createRouter({
     { path: '/dashboard', component: () => import('../components/dashboard/Dashboard.vue') },
     { path: '/friends', component: () => import('../components/friends/Friends.vue') },
     { path: '/stats', component: () => import('../components/stats/Stats.vue') },
+    { path: '/event', component: () => import('../components/event/Events.vue') },
+    { path: '/event/:id', component: () => import('../components/event/EventDetail.vue') },
+    { path: '/decks', component: () => import('../components/decks/Decks.vue') },
     { path: '/settings', component: () => import('../components/settings/Settings.vue') },
     { path: '/:pathMatch(.*)*', component: () => import('../components/shared/NotFound.vue'), meta: { public: true } },
   ],
@@ -41,7 +45,7 @@ router.beforeEach(async (to) => {
     await authService.refreshToken()
     return true
   } catch {
-    authService.logout()
+    await authService.logout()
     return { path: '/login', query: { redirect: to.fullPath } }
   }
 })

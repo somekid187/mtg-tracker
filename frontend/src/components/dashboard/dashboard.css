@@ -219,3 +219,20 @@
   background-color: rgba(255, 209, 112, 0.15);
   color: #ffd170;
 }
+
+.btn-delete-match {
+  background: transparent;
+  border: 1px solid #555;
+  color: #888;
+  border-radius: 6px;
+  padding: 0.15em 0.45em;
+  font-size: 0.75rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.btn-delete-match:hover {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+}

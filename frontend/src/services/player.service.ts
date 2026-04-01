@@ -14,6 +14,7 @@ export const playerService = {
     fk_appUser_participates?: number
     fk_team_isIncluded?: number
     fk_match_isPlayedIn: number
+    fk_deck_uses?: number
   }) {
     return api.post('/player', data).then((r: any) => r.data)
   },

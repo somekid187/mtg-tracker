@@ -1,10 +1,10 @@
 <style scoped src="./shared.css"></style>
 <template>
   <nav class="header">
-    <div class="logo-container">
-      <img src="/public/assets/mtglogo.png" alt="MTG Tracker Logo" class="logo" />
+    <a class="logo-container" href="/">
+        <img src="/assets/mtglogo.png" alt="MTG Tracker Logo" class="logo" />
       <h1 class="app-name">MTG Tracker</h1>
-    </div>
+    </a>
     <div class="nav-links">
       <RouterLink to="/login" v-if="!isAuthenticated">Login</RouterLink>
       <RouterLink to="/register" v-if="!isAuthenticated">Register</RouterLink>
@@ -25,8 +25,8 @@ export default defineComponent({
     const router = useRouter()
     const isAuthenticated = authService.isAuthenticated()
 
-    function handleLogout() {
-      authService.logout()
+    async function handleLogout() {
+      await authService.logout()
       router.push('/')
     }
 

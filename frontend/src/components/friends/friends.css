@@ -236,3 +236,69 @@
   color: #888;
   font-size: 0.9rem;
 }
+
+/* ── Tabs ──────────────────────────────── */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  background: #252729;
+  border-radius: 12px;
+  padding: 4px;
+  width: fit-content;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  background: transparent;
+  border: none;
+  color: #888;
+  padding: 0.45em 1.1em;
+  border-radius: 9px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tab-btn.active {
+  background: #414247;
+  color: #fefefe;
+}
+
+.tab-badge {
+  background-color: #ff6b6b;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1em 0.5em;
+  line-height: 1.4;
+}
+
+/* ── Game Invite Row ─────────────────── */
+.invite-row { align-items: flex-start; }
+
+.invite-avatar {
+  font-size: 1.25rem;
+  background-color: #3a3520;
+  border-color: #ffd170;
+}
+
+.invite-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35em;
+  margin-top: 0.3em;
+}
+
+.invite-chip {
+  background: #414247;
+  border-radius: 6px;
+  padding: 0.1em 0.55em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #ccc;
+}

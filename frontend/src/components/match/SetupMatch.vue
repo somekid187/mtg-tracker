@@ -30,27 +30,178 @@
                     </div>
                 </div>
 
+                <!-- Seating layout -->
+                <div class="seating-panel">
+                    <div class="seating-panel-head">
+                        <p class="seating-label">Seating Arrangement — drag seats to rearrange</p>
+                        <div class="layout-toggle">
+                            <button :class="['ltab', { active: layoutMode === 'linear' }]" @click="layoutMode = 'linear'" title="Linear layout">
+                                <span class="ltab-icon">&#9135;&#9135;</span>
+                            </button>
+                            <button :class="['ltab', { active: layoutMode === 'rect' }]" @click="layoutMode = 'rect'" title="Rectangular layout">
+                                <span class="ltab-icon">&#9645;</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Linear layout -->
+                    <div v-if="layoutMode === 'linear'" class="seating-table">
+                        <div v-for="(row, rowIdx) in slotRows" :key="rowIdx" class="seating-row">
+                            <div
+                                v-for="{ slot, index } in row.seats"
+                                :key="index"
+                                class="seat"
+                                :class="{
+                                    'seat-you': slot.type === 'you',
+                                    'seat-joined': slot.joinedUsername,
+                                    'seat-dragging': draggingFrom === index,
+                                    'seat-dragover': dragoverIndex === index && draggingFrom !== index,
+                                }"
+                                draggable="true"
+                                @dragstart="startDrag(index)"
+                                @dragover.prevent="onDragOver(index)"
+                                @drop.prevent="onDrop(index)"
+                                @dragend="onDragEnd"
+                            >
+                                <span class="seat-num">Seat {{ index + 1 }}</span>
+                                <span class="seat-name">{{ getSlotDisplayName(slot) }}</span>
+                            </div>
+                        </div>
+                        <div class="table-divider"><span>TABLE</span></div>
+                    </div>
+
+                    <!-- Rectangular layout -->
+                    <div v-else class="rect-table-wrap">
+                        <div class="rect-table">
+                            <!-- Top edge -->
+                            <div class="rect-edge rect-top">
+                                <div
+                                    v-for="{ slot, index, rotation } in rectLayout.top"
+                                    :key="index"
+                                    class="seat"
+                                    :class="{
+                                        'seat-you': slot.type === 'you',
+                                        'seat-joined': slot.joinedUsername,
+                                        'seat-dragging': draggingFrom === index,
+                                        'seat-dragover': dragoverIndex === index && draggingFrom !== index,
+                                    }"
+                                    :style="{ transform: `rotate(${rotation}deg)` }"
+                                    draggable="true"
+                                    @dragstart="startDrag(index)"
+                                    @dragover.prevent="onDragOver(index)"
+                                    @drop.prevent="onDrop(index)"
+                                    @dragend="onDragEnd"
+                                >
+                                    <span class="seat-num">{{ index + 1 }}</span>
+                                    <span class="seat-name">{{ getSlotDisplayName(slot) }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Middle row: left + table surface + right -->
+                            <div class="rect-middle">
+                                <div class="rect-edge rect-left">
+                                    <div
+                                        v-for="{ slot, index, rotation } in rectLayout.left"
+                                        :key="index"
+                                        class="seat"
+                                        :class="{
+                                            'seat-you': slot.type === 'you',
+                                            'seat-joined': slot.joinedUsername,
+                                            'seat-dragging': draggingFrom === index,
+                                            'seat-dragover': dragoverIndex === index && draggingFrom !== index,
+                                        }"
+                                        :style="{ transform: `rotate(${rotation}deg)` }"
+                                        draggable="true"
+                                        @dragstart="startDrag(index)"
+                                        @dragover.prevent="onDragOver(index)"
+                                        @drop.prevent="onDrop(index)"
+                                        @dragend="onDragEnd"
+                                    >
+                                        <span class="seat-num">{{ index + 1 }}</span>
+                                        <span class="seat-name">{{ getSlotDisplayName(slot) }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="rect-surface"><span>TABLE</span></div>
+
+                                <div class="rect-edge rect-right">
+                                    <div
+                                        v-for="{ slot, index, rotation } in rectLayout.right"
+                                        :key="index"
+                                        class="seat"
+                                        :class="{
+                                            'seat-you': slot.type === 'you',
+                                            'seat-joined': slot.joinedUsername,
+                                            'seat-dragging': draggingFrom === index,
+                                            'seat-dragover': dragoverIndex === index && draggingFrom !== index,
+                                        }"
+                                        :style="{ transform: `rotate(${rotation}deg)` }"
+                                        draggable="true"
+                                        @dragstart="startDrag(index)"
+                                        @dragover.prevent="onDragOver(index)"
+                                        @drop.prevent="onDrop(index)"
+                                        @dragend="onDragEnd"
+                                    >
+                                        <span class="seat-num">{{ index + 1 }}</span>
+                                        <span class="seat-name">{{ getSlotDisplayName(slot) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Bottom edge -->
+                            <div class="rect-edge rect-bottom">
+                                <div
+                                    v-for="{ slot, index, rotation } in rectLayout.bottom"
+                                    :key="index"
+                                    class="seat"
+                                    :class="{
+                                        'seat-you': slot.type === 'you',
+                                        'seat-joined': slot.joinedUsername,
+                                        'seat-dragging': draggingFrom === index,
+                                        'seat-dragover': dragoverIndex === index && draggingFrom !== index,
+                                    }"
+                                    :style="{ transform: `rotate(${rotation}deg)` }"
+                                    draggable="true"
+                                    @dragstart="startDrag(index)"
+                                    @dragover.prevent="onDragOver(index)"
+                                    @drop.prevent="onDrop(index)"
+                                    @dragend="onDragEnd"
+                                >
+                                    <span class="seat-num">{{ index + 1 }}</span>
+                                    <span class="seat-name">{{ getSlotDisplayName(slot) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Player slots -->
                 <div class="slots-grid">
                     <div
                         v-for="(slot, i) in slots"
                         :key="i"
                         class="slot-card"
-                        :class="{ 'is-joined': slot.joinedUsername, 'is-you': i === 0 }"
+                        :class="{ 'is-joined': slot.joinedUsername, 'is-you': slot.type === 'you' }"
                     >
                         <!-- Slot header row -->
                         <div class="slot-head">
                             <span class="slot-num">Player {{ i + 1 }}</span>
-                            <span v-if="i === 0" class="badge badge-you">You</span>
+                            <span v-if="slot.type === 'you'" class="badge badge-you">You</span>
                             <span v-else-if="slot.joinedUsername" class="badge badge-joined">✓ Joined</span>
+                            <span v-else-if="slot.inviteStatus === 'accepted'" class="badge badge-joined">✓ Accepted</span>
+                            <span v-else-if="slot.inviteStatus === 'pending'" class="badge badge-pending">⏳ Pending</span>
                             <span v-else-if="slot.isPending" class="badge badge-pending">⏳ Waiting</span>
                             <span v-else class="badge badge-open">Open</span>
                         </div>
 
-                        <!-- You (slot 0) -->
-                        <div v-if="i === 0" class="slot-you-info">
+                        <!-- You -->
+                        <div v-if="slot.type === 'you'" class="slot-you-info">
                             <div class="avatar">👤</div>
                             <span class="slot-name-txt">{{ slot.name }}</span>
+                            <select v-model="slot.deckId" class="s-input deck-select">
+                                <option :value="null">No deck</option>
+                                <option v-for="d in decks" :key="d.pk_deck" :value="d.pk_deck">{{ d.name }}</option>
+                            </select>
                         </div>
 
                         <!-- Already joined via invite -->
@@ -75,20 +226,26 @@
 
                             <!-- Friend picker -->
                             <div v-else-if="slot.type === 'friend'" class="slot-form">
-                                <select class="s-input" v-model="slot.selectedFriendId">
+                                <select class="s-input" v-model="slot.selectedFriendId" :disabled="slot.inviteStatus !== 'none'">
                                     <option value="">Select a friend…</option>
                                     <option v-for="f in availableFriends(i)" :key="f.friendId" :value="f.friendId">
                                         {{ f.friendUsername }}
                                     </option>
                                 </select>
                                 <p v-if="!friends.length" class="no-friends-note">No friends added yet. Use Email invite instead.</p>
-                                <div v-if="slot.selectedFriendId" class="code-share-box">
-                                    <span class="code-share-label">Share this invite code with {{ friends.find(f => f.friendId == slot.selectedFriendId)?.friendUsername }}:</span>
-                                    <div class="code-share-row">
-                                        <code class="code-val">{{ config.inviteCode }}</code>
-                                        <button class="btn-copy-sm" @click="copyCode">Copy</button>
+                                <template v-if="slot.selectedFriendId">
+                                    <div v-if="slot.inviteStatus === 'none'" class="invite-action-row">
+                                        <button class="btn-send" @click="sendFriendInvite(i)" :disabled="slot.sendingInvite">
+                                            {{ slot.sendingInvite ? 'Sending…' : '✉ Send Invite' }}
+                                        </button>
                                     </div>
-                                </div>
+                                    <div v-else-if="slot.inviteStatus === 'pending'" class="sent-row">
+                                        <span class="sent-text">⏳ Invite sent — waiting for response…</span>
+                                    </div>
+                                    <div v-else-if="slot.inviteStatus === 'accepted'" class="sent-row">
+                                        <span class="sent-text accepted-text">✅ Invite accepted — ready!</span>
+                                    </div>
+                                </template>
                             </div>
 
                             <!-- Email invite -->
@@ -112,10 +269,11 @@
 
                 <!-- Start button -->
                 <div class="start-row">
-                    <button class="btn-start" @click="startMatch" :disabled="loading">
+                    <button class="btn-start" @click="startMatch" :disabled="loading || !canStart">
                         {{ loading ? 'Starting…' : '▶ Start Match' }}
                     </button>
                     <p v-if="startError" class="start-error">{{ startError }}</p>
+                    <p v-if="!canStart && !loading" class="start-hint">All friend invites must be accepted before starting.</p>
                 </div>
             </template>
 
@@ -124,226 +282,7 @@
     </div>
 </template>
 
-<script>
-import { useRouter, useRoute } from 'vue-router';
-import Sidebar from '../shared/Sidebar.vue';
-import { matchService } from '../../services/match.service';
-import { playerService } from '../../services/player.service';
-import { guestService } from '../../services/guest.service';
-import { userService } from '../../services/user.service';
-import authService from '../../services/auth.service';
-
-export default {
-    components: { Sidebar },
-    setup() {
-        const router = useRouter();
-        const route = useRoute();
-        return { router, route };
-    },
-    data() {
-        return {
-            config: null,
-            slots: [],
-            friends: [],
-            loading: false,
-            startError: '',
-            copied: false,
-            pollTimer: null,
-        };
-    },
-    async created() {
-        const matchId = this.$route.params.id;
-        const raw = localStorage.getItem(`match_pending_${matchId}`);
-        if (!raw) {
-            this.router.push('/match');
-            return;
-        }
-        this.config = JSON.parse(raw);
-        const count = parseInt(this.config.playerCount);
-        const username = authService.getUsername();
-
-        this.slots = Array.from({ length: count }, (_, i) => {
-            if (i === 0) return { type: 'you', name: username || 'You', joinedUsername: null };
-            return {
-                type: 'guest',
-                guestName: '',
-                selectedFriendId: '',
-                email: '',
-                inviteSent: false,
-                joinedUsername: null,
-                joinedPkPlayer: null,
-                isPending: false,
-                error: '',
-                sending: false,
-            };
-        });
-
-        userService.getFriends().then(res => {
-            this.friends = res.data ?? [];
-        }).catch(() => {});
-
-        this.startPolling();
-    },
-    beforeUnmount() {
-        this.stopPolling();
-    },
-    methods: {
-        availableFriends(slotIndex) {
-            const taken = this.slots
-                .filter((s, i) => i !== slotIndex && s.selectedFriendId)
-                .map(s => String(s.selectedFriendId));
-            return this.friends.filter(f => !taken.includes(String(f.friendId)));
-        },
-        async copyCode() {
-            try {
-                await navigator.clipboard.writeText(this.config.inviteCode);
-                this.copied = true;
-                setTimeout(() => { this.copied = false; }, 2000);
-            } catch {}
-        },
-        async sendEmailInvite(i) {
-            const slot = this.slots[i];
-            if (!slot.email?.trim()) return;
-            slot.sending = true;
-            slot.error = '';
-            try {
-                await matchService.sendInviteEmail({
-                    email: slot.email.trim(),
-                    matchId: this.config.matchId,
-                    inviteCode: this.config.inviteCode,
-                });
-                slot.inviteSent = true;
-                slot.isPending = true;
-            } catch (err) {
-                slot.error = err?.response?.data?.message || err?.message || 'Failed to send invite.';
-            } finally {
-                slot.sending = false;
-            }
-        },
-        startPolling() {
-            if (!this.config?.matchId) return;
-            this.pollTimer = setInterval(async () => {
-                try {
-                    const res = await matchService.getPlayersByMatch(this.config.matchId);
-                    const players = res?.data ?? [];
-                    players.forEach(p => {
-                        if (!p.userName) return;
-                        const alreadyTracked = this.slots.some(s => s.joinedUsername === p.userName);
-                        if (alreadyTracked) return;
-
-                        // Try to match to a friend slot first
-                        let idx = this.slots.findIndex(
-                            (s, i) => i > 0 && !s.joinedUsername && s.type === 'friend' &&
-                            this.friends.find(f => f.friendId == s.selectedFriendId)?.friendUsername === p.userName
-                        );
-                        // Fallback: first pending slot
-                        if (idx === -1) {
-                            idx = this.slots.findIndex((s, i) => i > 0 && s.isPending && !s.joinedUsername);
-                        }
-                        if (idx > -1) {
-                            this.slots[idx].joinedUsername = p.userName;
-                            this.slots[idx].joinedPkPlayer = p.pk_player;
-                        }
-                    });
-                } catch {}
-            }, 5000);
-        },
-        stopPolling() {
-            if (this.pollTimer) {
-                clearInterval(this.pollTimer);
-                this.pollTimer = null;
-            }
-        },
-        async startMatch() {
-            const { matchId, startingLife, playerCount, hasPoison, hasTax, hasCommanderDamage } = this.config;
-            const count = parseInt(playerCount);
-            this.loading = true;
-            this.startError = '';
-
-            try {
-                const userId = authService.getUserId();
-                const players = [];
-
-                for (let i = 0; i < count; i++) {
-                    const slot = this.slots[i];
-                    const cdInit = hasCommanderDamage
-                        ? Object.fromEntries(
-                            Array.from({ length: count }, (_, j) => j + 1)
-                                .filter(id => id !== i + 1)
-                                .map(id => [id, 0])
-                        )
-                        : null;
-
-                    if (i === 0) {
-                        const r = await playerService.createPlayer({
-                            startingLife, placement: i + 1, minPlayers: count, maxPlayers: count,
-                            fk_appUser_participates: userId,
-                            fk_match_isPlayedIn: matchId,
-                        });
-                        players.push({
-                            id: i + 1, pk_player: r?.data?.pk_player ?? null,
-                            userId, guestId: null, name: slot.name,
-                            startingLife, currentLife: startingLife, finalLife: null, isWinner: false,
-                            tax: hasTax ? 0 : null, placement: null,
-                            poisonCounter: hasPoison ? 0 : null, commanderDamage: cdInit,
-                        });
-                    } else if (slot.joinedPkPlayer) {
-                        // Already joined via invite — reuse their player record
-                        players.push({
-                            id: i + 1, pk_player: slot.joinedPkPlayer,
-                            userId: null, guestId: null, name: slot.joinedUsername,
-                            startingLife, currentLife: startingLife, finalLife: null, isWinner: false,
-                            tax: hasTax ? 0 : null, placement: null,
-                            poisonCounter: hasPoison ? 0 : null, commanderDamage: cdInit,
-                        });
-                    } else {
-                        const name =
-                            slot.type === 'guest'  ? (slot.guestName?.trim() || `Player ${i + 1}`) :
-                            slot.type === 'friend' ? (this.friends.find(f => f.friendId == slot.selectedFriendId)?.friendUsername || `Player ${i + 1}`) :
-                            slot.type === 'email'  ? (slot.email?.split('@')[0] || `Player ${i + 1}`) :
-                            `Player ${i + 1}`;
-
-                        const gr = await guestService.createGuest({ guestName: name });
-                        const guestId = gr?.data?.pk_guest;
-                        if (!guestId) throw new Error(`Failed to create guest for player ${i + 1}`);
-
-                        const pr = await playerService.createPlayer({
-                            startingLife, placement: i + 1, minPlayers: count, maxPlayers: count,
-                            fk_guest_enters: guestId,
-                            fk_match_isPlayedIn: matchId,
-                        });
-                        players.push({
-                            id: i + 1, pk_player: pr?.data?.pk_player ?? null,
-                            userId: null, guestId, name,
-                            startingLife, currentLife: startingLife, finalLife: null, isWinner: false,
-                            tax: hasTax ? 0 : null, placement: null,
-                            poisonCounter: hasPoison ? 0 : null, commanderDamage: cdInit,
-                        });
-                    }
-                }
-
-                const matchData = {
-                    pk_match: matchId,
-                    name: this.config.matchName,
-                    format: this.config.format,
-                    startingLife,
-                    playerCount: count,
-                    hasPoison, hasTax, hasCommanderDamage,
-                    players,
-                };
-                localStorage.setItem(`match_${matchId}`, JSON.stringify(matchData));
-                localStorage.removeItem(`match_pending_${matchId}`);
-                this.stopPolling();
-                this.router.push(`/match/${matchId}`);
-            } catch (err) {
-                this.startError = err?.response?.data?.message || err?.message || 'Failed to start match.';
-            } finally {
-                this.loading = false;
-            }
-        },
-    },
-};
-</script>
+<script lang="ts" src="./setupMatch"></script>
 
 <style scoped>
 .page-layout { width: 100%; height: 100%; display: flex; }
@@ -406,6 +345,168 @@ export default {
 }
 .btn-copy:hover { background-color: #ffc107; }
 
+/* Seating layout */
+.seating-panel {
+    background-color: #313338;
+    border-radius: 16px;
+    padding: 1.25em 1.75em;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.seating-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1em;
+}
+
+.seating-label {
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* Layout toggle buttons */
+.layout-toggle {
+    display: flex;
+    gap: 2px;
+    background: #252729;
+    border-radius: 8px;
+    padding: 3px;
+}
+.ltab {
+    border: none;
+    background: transparent;
+    color: #888;
+    padding: 0.3em 0.65em;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    transition: all 0.15s;
+}
+.ltab.active { background: #414247; color: #ffd170; }
+.ltab-icon { pointer-events: none; }
+
+.seating-table {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+}
+
+.seating-row {
+    display: flex;
+    gap: 0.75em;
+    justify-content: center;
+    padding: 0.75em 0;
+}
+
+.table-divider {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    color: #444;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+}
+.table-divider::before,
+.table-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #3a3d42;
+}
+
+.seat {
+    background: #252729;
+    border: 2px solid #414247;
+    border-radius: 12px;
+    padding: 0.6em 1.25em;
+    min-width: 110px;
+    text-align: center;
+    cursor: grab;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2em;
+    transition: border-color 0.15s, background 0.15s, opacity 0.15s, transform 0.1s;
+}
+.seat:active { cursor: grabbing; }
+.seat-you { border-color: #ffd170; }
+.seat-joined { border-color: #6bffb8; }
+.seat-dragging { opacity: 0.4; transform: scale(0.95); }
+.seat-dragover { border-color: #ffd170; background: #3a3520; }
+
+.seat-num {
+    font-size: 0.65rem;
+    color: #555;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.seat-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fefefe;
+}
+
+/* ── Rectangular table layout ─────────────────────── */
+.rect-table-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 0.5em 0;
+}
+.rect-table {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5em;
+    width: 100%;
+    max-width: 700px;
+}
+.rect-edge {
+    display: flex;
+    gap: 0.5em;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+/* Left/right edges stack seats vertically and fill the middle row height */
+.rect-left, .rect-right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-self: stretch;
+}
+.rect-middle {
+    display: flex;
+    align-items: stretch;
+    gap: 0.5em;
+    width: 100%;
+    justify-content: center;
+}
+.rect-surface {
+    flex: 1;
+    min-height: 80px;
+    max-width: 320px;
+    background: #252729;
+    border: 2px solid #3a3d42;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #444;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+}
+
 /* Slots grid */
 .slots-grid {
     display: grid;
@@ -441,7 +542,8 @@ export default {
 .badge-pending { background: #3d3015; color: #ffc107; }
 .badge-open    { background: #2a2d31; color: #888; }
 
-.slot-you-info { display: flex; align-items: center; gap: 0.75em; }
+.slot-you-info { display: flex; align-items: center; gap: 0.75em; flex-wrap: wrap; }
+.deck-select { flex: 1; min-width: 100px; max-width: 160px; font-size: 0.82rem; padding: 0.3rem 0.5rem; }
 .avatar { font-size: 1.5rem; }
 .slot-name-txt { font-weight: 600; font-size: 1rem; }
 .joined-txt { color: #6bffb8; }
@@ -523,6 +625,9 @@ export default {
 .btn-send:hover { background-color: #ffc107; }
 .btn-send:disabled { background-color: #555; color: #888; cursor: not-allowed; }
 
+.invite-action-row { display: flex; }
+.accepted-text { color: #6bffb8; }
+
 .sent-row { display: flex; flex-direction: column; gap: 0.2em; }
 .sent-text { color: #6bffb8; font-size: 0.85rem; font-weight: 600; }
 .sent-hint { color: #888; font-size: 0.78rem; }
@@ -546,5 +651,6 @@ export default {
 .btn-start:hover { background-color: #ffc107; }
 .btn-start:disabled { background-color: #555; color: #888; cursor: not-allowed; }
 .start-error { color: #ff6b6b; margin: 0; font-size: 0.9rem; }
+.start-hint { color: #888; margin: 0; font-size: 0.82rem; font-style: italic; }
 .loading-txt { color: #888; font-size: 1rem; }
 </style>

@@ -17,6 +17,10 @@ export const userService = {
     return api.post('/user/password/reset', { email }).then((r: any) => r.data)
   },
 
+  changePassword(token: string, password: string) {
+    return api.post('/user/password', { token, password }).then((r: any) => r.data)
+  },
+
   getStats() {
     return api.get('/user/stats').then((r: any) => r.data)
   },
@@ -47,5 +51,9 @@ export const userService = {
 
   removeFriend(friendshipId: number) {
     return api.delete(`/user/friends/${friendshipId}`).then((r: any) => r.data)
+  },
+
+  getLeaderboard() {
+    return api.get('/user/leaderboard').then((r: any) => r.data)
   },
 }

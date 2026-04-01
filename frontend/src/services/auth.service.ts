@@ -113,7 +113,24 @@ const authService = {
     return !!this.getAccessToken()
   },
 
-  logout() {
+  async logout() {
+    // Best-effort server-side revocation before clearing local state
+    const refreshToken = this.getRefreshToken()
+    const accessToken = this.getAccessToken()
+    if (refreshToken && accessToken) {
+      try {
+        await axios.post(
+          `${apiURL}/auth/logout`,
+          { refreshToken },
+          {
+            headers: { Authorization: `Bearer ${accessToken}` },
+            withCredentials: true,
+          },
+        )
+      } catch {
+        // Server revocation is best-effort; localStorage is cleared regardless
+      }
+    }
     localStorage.removeItem(accessTokenKey)
     localStorage.removeItem(refreshTokenKey)
     localStorage.removeItem(usernameKey)
@@ -142,9 +159,9 @@ const authService = {
 
           return nextAccessToken
         })
-        .catch((error: unknown) => {
+        .catch(async (error: unknown) => {
           console.error('Token refresh failed:', error)
-          this.logout()
+          await this.logout()
           throw error
         })
     }

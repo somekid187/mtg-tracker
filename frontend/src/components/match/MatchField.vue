@@ -2,11 +2,9 @@
   <div class="page-layout">
     <Sidebar v-if="sidebarOpen" />
     <div class="match-field">
-      <button class="sidebar-toggle" @click="sidebarOpen = !sidebarOpen">
-        {{ sidebarOpen ? '◀' : '▶' }}
-      </button>
 
-      <div v-if="matchData?.players" class="players-grid">
+      <!-- Linear layout -->
+      <div v-if="matchData?.players && matchData.layoutMode !== 'rect'" class="players-grid">
         <div v-for="(row, rowIdx) in playerRows" :key="rowIdx" class="players-row">
           <div
             v-for="player in row.players"
@@ -50,9 +48,6 @@
                 <span class="life-value" :class="{ 'low-life': player.currentLife <= 5 }">{{ player.currentLife }}</span>
                 <button class="btn-life" @click="adjust(player, 'currentLife', 1)" :disabled="matchEnded">+</button>
               </div>
-              <span v-if="matchData.hasCommanderDamage" class="cdmg-summary">
-                CDMG: {{ totalCommanderDamage(player) }} | CTR: {{ player.tax ?? 0 }}
-              </span>
             </div>
 
             <div v-if="matchData.hasCommanderDamage && player.commanderDamage" class="card-cdmg">
@@ -70,12 +65,277 @@
                 </button>
               </div>
             </div>
+            <div v-if="reordering" class="swap-overlay" @click="handleCardClick(player)" :class="{ 'swap-selected': selectedPlayerId === player.id }">
+              <span class="swap-hint">{{ selectedPlayerId === player.id ? '✓' : '⇄' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rectangular layout: card-cdmg always at screen-bottom since cards are not rotated -->
+      <div v-if="matchData?.players && matchData.layoutMode === 'rect'" class="rect-field">
+        <div v-if="rectLayout.top.length" class="rf-top">
+          <div
+            v-for="player in rectLayout.top"
+            :key="player.id"
+            class="player-card flipped"
+            :class="{ eliminated: isEliminated(player) }"
+          >
+            <div class="card-info">
+              <div class="card-counters">
+                <div v-if="matchData.hasTax" class="counter-block">
+                  <span class="counter-val">{{ player.tax }}</span>
+                  <div class="counter-ctrl">
+                    <button class="btn-counter" @click="adjust(player, 'tax', -1)" :disabled="matchEnded">-</button>
+                    <span class="counter-name">Tax</span>
+                    <button class="btn-counter" @click="adjust(player, 'tax', 1)" :disabled="matchEnded">+</button>
+                  </div>
+                </div>
+                <div v-if="matchData.hasPoison" class="counter-block">
+                  <span class="counter-val" :class="{ lethal: player.poisonCounter >= 10 }">{{ player.poisonCounter }}</span>
+                  <div class="counter-ctrl">
+                    <button class="btn-counter" @click="adjustPoison(player, -1)" :disabled="matchEnded">-</button>
+                    <span class="counter-name">Poison</span>
+                    <button class="btn-counter" @click="adjustPoison(player, 1)" :disabled="matchEnded">+</button>
+                  </div>
+                </div>
+              </div>
+              <div class="card-identity">
+                <div class="avatar-circle">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="44" height="44">
+                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                  </svg>
+                </div>
+                <span class="player-name">{{ player.name }}</span>
+              </div>
+            </div>
+            <div class="life-section">
+              <span class="life-label">Life</span>
+              <div class="life-controls">
+                <button class="btn-life" @click="adjust(player, 'currentLife', -1)" :disabled="matchEnded">−</button>
+                <span class="life-value" :class="{ 'low-life': player.currentLife <= 5 }">{{ player.currentLife }}</span>
+                <button class="btn-life" @click="adjust(player, 'currentLife', 1)" :disabled="matchEnded">+</button>
+              </div>
+              <span v-if="matchData.hasCommanderDamage" class="cdmg-summary">
+                CDMG: {{ totalCommanderDamage(player) }} | CTR: {{ player.tax ?? 0 }}
+              </span>
+            </div>
+            <div v-if="matchData.hasCommanderDamage && player.commanderDamage" class="card-cdmg">
+              <span class="cdmg-label">Commander Damage</span>
+              <div class="cdmg-badges">
+                <button
+                  v-for="(amount, dealerId) in player.commanderDamage"
+                  :key="dealerId"
+                  class="cdmg-badge"
+                  @click="openCdmgModal(player, dealerId)"
+                  :class="{ lethal: amount >= 21 }"
+                  :disabled="matchEnded"
+                >
+                  {{ amount }} | {{ getPlayerName(dealerId) }}
+                </button>
+              </div>
+            </div>
+            <div v-if="reordering" class="swap-overlay" @click="handleCardClick(player)" :class="{ 'swap-selected': selectedPlayerId === player.id }">
+              <span class="swap-hint">{{ selectedPlayerId === player.id ? '✓' : '⇄' }}</span>
+            </div>
+          </div>
+        </div>
+        <div v-if="rectLayout.left.length" class="rf-left">
+          <div v-for="player in rectLayout.left" :key="player.id" class="rf-side-slot">
+          <div
+            class="player-card rf-left-card"
+            :class="{ eliminated: isEliminated(player) }"
+          >
+            <div class="card-info">
+              <div class="card-counters">
+                <div v-if="matchData.hasTax" class="counter-block">
+                  <span class="counter-val">{{ player.tax }}</span>
+                  <div class="counter-ctrl">
+                    <button class="btn-counter" @click="adjust(player, 'tax', -1)" :disabled="matchEnded">-</button>
+                    <span class="counter-name">Tax</span>
+                    <button class="btn-counter" @click="adjust(player, 'tax', 1)" :disabled="matchEnded">+</button>
+                  </div>
+                </div>
+                <div v-if="matchData.hasPoison" class="counter-block">
+                  <span class="counter-val" :class="{ lethal: player.poisonCounter >= 10 }">{{ player.poisonCounter }}</span>
+                  <div class="counter-ctrl">
+                    <button class="btn-counter" @click="adjustPoison(player, -1)" :disabled="matchEnded">-</button>
+                    <span class="counter-name">Poison</span>
+                    <button class="btn-counter" @click="adjustPoison(player, 1)" :disabled="matchEnded">+</button>
+                  </div>
+                </div>
+              </div>
+              <div class="card-identity">
+                <div class="avatar-circle">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="44" height="44">
+                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                  </svg>
+                </div>
+                <span class="player-name">{{ player.name }}</span>
+              </div>
+            </div>
+            <div class="life-section">
+              <span class="life-label">Life</span>
+              <div class="life-controls">
+                <button class="btn-life" @click="adjust(player, 'currentLife', -1)" :disabled="matchEnded">−</button>
+                <span class="life-value" :class="{ 'low-life': player.currentLife <= 5 }">{{ player.currentLife }}</span>
+                <button class="btn-life" @click="adjust(player, 'currentLife', 1)" :disabled="matchEnded">+</button>
+              </div>
+            </div>
+            <div v-if="matchData.hasCommanderDamage && player.commanderDamage" class="card-cdmg">
+              <span class="cdmg-label">Commander Damage</span>
+              <div class="cdmg-badges">
+                <button
+                  v-for="(amount, dealerId) in player.commanderDamage"
+                  :key="dealerId"
+                  class="cdmg-badge"
+                  @click="openCdmgModal(player, dealerId)"
+                  :class="{ lethal: amount >= 21 }"
+                  :disabled="matchEnded"
+                >
+                  {{ amount }} | {{ getPlayerName(dealerId) }}
+                </button>
+              </div>
+            </div>
+            <div v-if="reordering" class="swap-overlay" @click="handleCardClick(player)" :class="{ 'swap-selected': selectedPlayerId === player.id }">
+              <span class="swap-hint">{{ selectedPlayerId === player.id ? '✓' : '⇄' }}</span>
+            </div>
+          </div>
+          </div>
+        </div>
+        <div v-if="rectLayout.right.length" class="rf-right">
+          <div v-for="player in rectLayout.right" :key="player.id" class="rf-side-slot">
+          <div
+            class="player-card rf-right-card"
+            :class="{ eliminated: isEliminated(player) }"
+          >
+            <div class="card-info">
+              <div class="card-counters">
+                <div v-if="matchData.hasTax" class="counter-block">
+                  <span class="counter-val">{{ player.tax }}</span>
+                  <div class="counter-ctrl">
+                    <button class="btn-counter" @click="adjust(player, 'tax', -1)" :disabled="matchEnded">-</button>
+                    <span class="counter-name">Tax</span>
+                    <button class="btn-counter" @click="adjust(player, 'tax', 1)" :disabled="matchEnded">+</button>
+                  </div>
+                </div>
+                <div v-if="matchData.hasPoison" class="counter-block">
+                  <span class="counter-val" :class="{ lethal: player.poisonCounter >= 10 }">{{ player.poisonCounter }}</span>
+                  <div class="counter-ctrl">
+                    <button class="btn-counter" @click="adjustPoison(player, -1)" :disabled="matchEnded">-</button>
+                    <span class="counter-name">Poison</span>
+                    <button class="btn-counter" @click="adjustPoison(player, 1)" :disabled="matchEnded">+</button>
+                  </div>
+                </div>
+              </div>
+              <div class="card-identity">
+                <div class="avatar-circle">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="44" height="44">
+                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                  </svg>
+                </div>
+                <span class="player-name">{{ player.name }}</span>
+              </div>
+            </div>
+            <div class="life-section">
+              <span class="life-label">Life</span>
+              <div class="life-controls">
+                <button class="btn-life" @click="adjust(player, 'currentLife', -1)" :disabled="matchEnded">−</button>
+                <span class="life-value" :class="{ 'low-life': player.currentLife <= 5 }">{{ player.currentLife }}</span>
+                <button class="btn-life" @click="adjust(player, 'currentLife', 1)" :disabled="matchEnded">+</button>
+              </div>
+            </div>
+            <div v-if="matchData.hasCommanderDamage && player.commanderDamage" class="card-cdmg">
+              <span class="cdmg-label">Commander Damage</span>
+              <div class="cdmg-badges">
+                <button
+                  v-for="(amount, dealerId) in player.commanderDamage"
+                  :key="dealerId"
+                  class="cdmg-badge"
+                  @click="openCdmgModal(player, dealerId)"
+                  :class="{ lethal: amount >= 21 }"
+                  :disabled="matchEnded"
+                >
+                  {{ amount }} | {{ getPlayerName(dealerId) }}
+                </button>
+              </div>
+            </div>
+            <div v-if="reordering" class="swap-overlay" @click="handleCardClick(player)" :class="{ 'swap-selected': selectedPlayerId === player.id }">
+              <span class="swap-hint">{{ selectedPlayerId === player.id ? '✓' : '⇄' }}</span>
+            </div>
+          </div>
+          </div>
+        </div>
+        <div class="rf-bottom">
+          <div
+            v-for="player in rectLayout.bottom"
+            :key="player.id"
+            class="player-card"
+            :class="{ eliminated: isEliminated(player) }"
+          >
+            <div class="card-info">
+              <div class="card-counters">
+                <div v-if="matchData.hasTax" class="counter-block">
+                  <span class="counter-val">{{ player.tax }}</span>
+                  <div class="counter-ctrl">
+                    <button class="btn-counter" @click="adjust(player, 'tax', -1)" :disabled="matchEnded">-</button>
+                    <span class="counter-name">Tax</span>
+                    <button class="btn-counter" @click="adjust(player, 'tax', 1)" :disabled="matchEnded">+</button>
+                  </div>
+                </div>
+                <div v-if="matchData.hasPoison" class="counter-block">
+                  <span class="counter-val" :class="{ lethal: player.poisonCounter >= 10 }">{{ player.poisonCounter }}</span>
+                  <div class="counter-ctrl">
+                    <button class="btn-counter" @click="adjustPoison(player, -1)" :disabled="matchEnded">-</button>
+                    <span class="counter-name">Poison</span>
+                    <button class="btn-counter" @click="adjustPoison(player, 1)" :disabled="matchEnded">+</button>
+                  </div>
+                </div>
+              </div>
+              <div class="card-identity">
+                <div class="avatar-circle">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="44" height="44">
+                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                  </svg>
+                </div>
+                <span class="player-name">{{ player.name }}</span>
+              </div>
+            </div>
+            <div class="life-section">
+              <span class="life-label">Life</span>
+              <div class="life-controls">
+                <button class="btn-life" @click="adjust(player, 'currentLife', -1)" :disabled="matchEnded">−</button>
+                <span class="life-value" :class="{ 'low-life': player.currentLife <= 5 }">{{ player.currentLife }}</span>
+                <button class="btn-life" @click="adjust(player, 'currentLife', 1)" :disabled="matchEnded">+</button>
+              </div>
+            </div>
+            <div v-if="matchData.hasCommanderDamage && player.commanderDamage" class="card-cdmg">
+              <span class="cdmg-label">Commander Damage</span>
+              <div class="cdmg-badges">
+                <button
+                  v-for="(amount, dealerId) in player.commanderDamage"
+                  :key="dealerId"
+                  class="cdmg-badge"
+                  @click="openCdmgModal(player, dealerId)"
+                  :class="{ lethal: amount >= 21 }"
+                  :disabled="matchEnded"
+                >
+                  {{ amount }} | {{ getPlayerName(dealerId) }}
+                </button>
+              </div>
+            </div>
+            <div v-if="reordering" class="swap-overlay" @click="handleCardClick(player)" :class="{ 'swap-selected': selectedPlayerId === player.id }">
+              <span class="swap-hint">{{ selectedPlayerId === player.id ? '✓' : '⇄' }}</span>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="match-footer">
         <div class="footer-tools">
+          <button class="btn-tool" @click="sidebarOpen = !sidebarOpen" :title="sidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'">
+            {{ sidebarOpen ? '◀' : '▶' }}<span class="btn-tool-label">Sidebar</span>
+          </button>
           <button class="btn-tool" @click="openRandomModal('player')" title="Random Player">
             👤<span class="btn-tool-label">Player</span>
           </button>
@@ -84,6 +344,12 @@
           </button>
           <button class="btn-tool" @click="openRandomModal('dice')" title="Roll Dice">
             🎲<span class="btn-tool-label">Dice</span>
+          </button>
+          <button class="btn-tool" @click="toggleFullscreen" :title="isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'">
+            {{ isFullscreen ? '🗗' : '⛶' }}<span class="btn-tool-label">Fullscreen</span>
+          </button>
+          <button class="btn-tool" :class="{ 'btn-tool-active': reordering }" @click="toggleReordering" title="Rearrange seats">
+            🔀<span class="btn-tool-label">Seats</span>
           </button>
         </div>
         <div class="footer-actions">
@@ -229,13 +495,18 @@ export default {
       cdmgRecordIds: {},
       cdmgModal: null,
       randomModal: null,
+      isFullscreen: false,
+      reordering: false,
+      selectedPlayerId: null,
     }
   },
   mounted() {
     this.autoSaveTimer = setInterval(this.autoSave, 2000)
+    document.addEventListener('fullscreenchange', this.handleFullscreenChange)
   },
   beforeUnmount() {
     if (this.autoSaveTimer) clearInterval(this.autoSaveTimer)
+    document.removeEventListener('fullscreenchange', this.handleFullscreenChange)
   },
   computed: {
     playerRows() {
@@ -246,6 +517,23 @@ export default {
         { players: this.matchData.players.slice(split), flipped: true },
         { players: this.matchData.players.slice(0, split), flipped: false },
       ]
+    },
+    rectLayout() {
+      if (!this.matchData?.players) return { top: [], right: [], bottom: [], left: [] }
+      const players = this.matchData.players
+      const total = players.length
+      const base         = Math.floor(total / 4)
+      const rem          = total % 4
+      const bottomCount  = base + (rem >= 1 ? 1 : 0)
+      const topCount     = base + (rem >= 2 ? 1 : 0)
+      const rightCount   = base + (rem >= 3 ? 1 : 0)
+      const leftCount    = base
+      let i = 0
+      const bottom = players.slice(i, i + bottomCount); i += bottomCount
+      const top    = players.slice(i, i + topCount);    i += topCount
+      const right  = players.slice(i, i + rightCount);  i += rightCount
+      const left   = players.slice(i, i + leftCount)
+      return { top, right, bottom, left }
     },
   },
   async created() {
@@ -314,6 +602,24 @@ export default {
     }
   },
   methods: {
+    handleFullscreenChange() {
+      this.isFullscreen = !!document.fullscreenElement
+    },
+    toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(() => {
+          this.isFullscreen = true
+        }).catch(() => {
+          this.isFullscreen = false
+        })
+      } else {
+        document.exitFullscreen().then(() => {
+          this.isFullscreen = false
+        }).catch(() => {
+          this.isFullscreen = true
+        })
+      }
+    },
     openRandomModal(type) {
       this.randomModal = { type, result: null, diceSides: 20 }
     },
@@ -400,7 +706,7 @@ export default {
         await Promise.all(updates)
 
         // Set endTime on the match
-        const endTime = new Date().toTimeString().slice(0, 8)
+        const endTime = new Date().toISOString().slice(0, 19).replace('T', ' ')
         await matchService.updateMatch(this.matchData.pk_match, { endTime })
 
         this.results = withPlacements
@@ -422,7 +728,9 @@ export default {
             finalLife: p.currentLife,
             poisonCounter: p.poisonCounter ?? undefined,
             tax: p.tax ?? undefined,
-          }).catch(() => {})
+          }).catch((err) => {
+            if (err?.response?.status === 404) p.pk_player = null
+          })
         })
 
         const cdmgUpdates = []
@@ -437,7 +745,9 @@ export default {
               const isLethal = amount >= (this.matchData.commanderThreshold ?? 21)
               if (existingId) {
                 cdmgUpdates.push(
-                  commanderDamageService.updateCommanderDamage(existingId, { damageAmount: amount, isLethal }).catch(() => {})
+                  commanderDamageService.updateCommanderDamage(existingId, { damageAmount: amount, isLethal }).catch((err) => {
+                    if (err?.response?.status === 404) delete this.cdmgRecordIds[key]
+                  })
                 )
               } else if (amount > 0) {
                 cdmgUpdates.push(
@@ -463,6 +773,28 @@ export default {
     goBack() {
       // Just navigate away — localStorage is preserved so the match can be resumed
       this.router.push('/match')
+    },
+    toggleReordering() {
+      this.reordering = !this.reordering
+      this.selectedPlayerId = null
+    },
+    handleCardClick(player) {
+      if (!this.reordering) return
+      if (this.selectedPlayerId === null) {
+        this.selectedPlayerId = player.id
+      } else if (this.selectedPlayerId === player.id) {
+        this.selectedPlayerId = null
+      } else {
+        const players = this.matchData.players
+        const idx1 = players.findIndex(p => p.id === this.selectedPlayerId)
+        const idx2 = players.findIndex(p => p.id === player.id)
+        if (idx1 !== -1 && idx2 !== -1) {
+          const temp = players[idx1]
+          players.splice(idx1, 1, players[idx2])
+          players.splice(idx2, 1, temp)
+        }
+        this.selectedPlayerId = null
+      }
     },
   },
   watch: {
@@ -495,27 +827,6 @@ export default {
   overflow: hidden;
 }
 
-.sidebar-toggle {
-  position: absolute;
-  top: 0.6em;
-  left: 0.6em;
-  z-index: 10;
-  background: #3d3d3d;
-  border: 1px solid #ffd170;
-  color: #ffd170;
-  border-radius: 8px;
-  padding: 0.3em 0.7em;
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-family: 'Poppins', sans-serif;
-  transition: background 0.2s, color 0.2s;
-}
-
-.sidebar-toggle:hover {
-  background: #ffd170;
-  color: #292b2d;
-}
-
 .players-grid {
   flex: 1;
   display: flex;
@@ -532,6 +843,62 @@ export default {
   overflow: hidden;
 }
 
+/* ── Rectangular layout ────────────────────────────── */
+.rect-field {
+  flex: 1;
+  display: grid;
+  grid-template-areas:
+    "left   top    right"
+    "left   bottom right";
+  grid-template-columns: minmax(0, auto) 1fr minmax(0, auto);
+  grid-template-rows: 1fr 1fr;
+  gap: 0.75em;
+  padding: 0.75em;
+  overflow: hidden;
+  min-height: 0;
+}
+.rf-top    { grid-area: top;    display: flex; gap: 0.75em; min-width: 0; }
+.rf-bottom { grid-area: bottom; display: flex; gap: 0.75em; min-width: 0; }
+.rf-top .player-card,
+.rf-bottom .player-card { flex: 1; min-width: 0; min-height: 0; }
+
+/* Side columns: each card is rotated inside a slot */
+.rf-left  {
+  grid-area: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+  width: 220px;
+}
+.rf-right {
+  grid-area: right;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+  width: 220px;
+}
+.rf-side-slot {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  container-type: size;
+}
+.rf-left-card,
+.rf-right-card {
+  position: absolute;
+  /* natural size is slot-height × slot-width so after rotation it fills slot exactly */
+  width: 100cqh;
+  height: 100cqw;
+  top: 50%;
+  left: 50%;
+  transform-origin: center center;
+  min-width: 0;
+  min-height: 0;
+}
+.rf-left-card  { transform: translate(-50%, -50%) rotate(90deg); }
+.rf-right-card { transform: translate(-50%, -50%) rotate(270deg); }
+
 /* Player card */
 .player-card {
   flex: 1;
@@ -544,6 +911,49 @@ export default {
   font-family: 'Poppins', sans-serif;
   overflow: hidden;
   min-width: 0;
+  position: relative;
+}
+
+.swap-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  border-radius: 14px;
+  transition: background 0.2s;
+}
+
+.swap-overlay:hover {
+  background: rgba(255, 209, 112, 0.15);
+}
+
+.swap-overlay.swap-selected {
+  background: rgba(255, 209, 112, 0.25);
+  outline: 3px solid #ffd170;
+}
+
+.swap-hint {
+  font-size: 2.5rem;
+  color: #fefefe;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+}
+
+.swap-overlay.swap-selected .swap-hint {
+  color: #ffd170;
+}
+
+.btn-tool-active {
+  background: #ffd170 !important;
+  color: #292b2d !important;
+  border-color: #ffd170 !important;
+}
+
+.btn-tool-active .btn-tool-label {
+  color: #292b2d;
 }
 
 .player-card.flipped {
@@ -560,14 +970,14 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 0.9em 1em;
-  gap: 0.75em;
+  padding: 0.5em 0.75em;
+  gap: 0.5em;
 }
 
 .card-counters {
   display: flex;
   flex-direction: column;
-  gap: 0.5em;
+  gap: 0.3em;
 }
 
 .counter-block {
@@ -577,7 +987,7 @@ export default {
 }
 
 .counter-val {
-  font-size: 1.5rem;
+  font-size: 1.15rem;
   font-weight: 700;
   line-height: 1.1;
 }
@@ -593,9 +1003,9 @@ export default {
 }
 
 .counter-name {
-  font-size: 0.85rem;
+  font-size: 0.72rem;
   color: #bbb;
-  min-width: 2.5em;
+  min-width: 2em;
   text-align: center;
 }
 
@@ -604,9 +1014,9 @@ export default {
   border: none;
   color: #fefefe;
   border-radius: 6px;
-  width: 36px;
-  height: 36px;
-  font-size: 1.1rem;
+  width: 44px;
+  height: 44px;
+  font-size: 1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -633,8 +1043,8 @@ export default {
 }
 
 .avatar-circle {
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: #414247;
   border: 2px solid #595d63;
@@ -642,10 +1052,16 @@ export default {
   align-items: center;
   justify-content: center;
   color: #bbb;
+  flex-shrink: 0;
+}
+
+.avatar-circle svg {
+  width: 30px;
+  height: 30px;
 }
 
 .player-name {
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 700;
   text-align: center;
   word-break: break-word;
@@ -658,14 +1074,14 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0.6em;
+  padding: 0.4em 0.5em;
   border-top: 1px solid #414247;
   border-bottom: 1px solid #414247;
-  gap: 0.4em;
+  gap: 0.3em;
 }
 
 .life-label {
-  font-size: 1rem;
+  font-size: 0.72rem;
   color: #bbb;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -674,17 +1090,17 @@ export default {
 .life-controls {
   display: flex;
   align-items: center;
-  gap: 1em;
+  gap: 0.5em;
 }
 
 .btn-life {
   background: #414247;
   border: none;
   color: #fefefe;
-  border-radius: 12px;
-  width: 64px;
-  height: 64px;
-  font-size: 2rem;
+  border-radius: 10px;
+  width: 52px;
+  height: 52px;
+  font-size: 1.6rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -704,9 +1120,9 @@ export default {
 }
 
 .life-value {
-  font-size: 5rem;
+  font-size: 3.5rem;
   font-weight: 800;
-  min-width: 3.5rem;
+  min-width: 3rem;
   text-align: center;
   line-height: 1;
 }
@@ -716,20 +1132,20 @@ export default {
 }
 
 .cdmg-summary {
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   color: #bbb;
 }
 
 /* Commander Damage section */
 .card-cdmg {
-  padding: 0.6em 1em;
+  padding: 0.35em 0.75em;
   display: flex;
   flex-direction: column;
-  gap: 0.4em;
+  gap: 0.3em;
 }
 
 .cdmg-label {
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   color: #bbb;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -738,7 +1154,7 @@ export default {
 .cdmg-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5em;
+  gap: 0.4em;
 }
 
 .cdmg-badge {
@@ -746,8 +1162,8 @@ export default {
   border: 1px solid #595d63;
   color: #fefefe;
   border-radius: 8px;
-  padding: 0.4em 0.85em;
-  font-size: 0.95rem;
+  padding: 0.3em 0.6em;
+  font-size: 0.82rem;
   cursor: pointer;
   font-family: 'Poppins', sans-serif;
   transition: background 0.2s, color 0.2s;
@@ -775,8 +1191,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1em;
-  padding: 0.75em 1em;
+  gap: 0.75em;
+  padding: 0.45em 0.75em;
   background: #212121;
 }
 
@@ -790,14 +1206,14 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15em;
+  gap: 0.1em;
   background: #414247;
   border: 1px solid #595d63;
   color: #fefefe;
   border-radius: 10px;
-  padding: 0.45em 0.85em;
+  padding: 0.35em 0.65em;
   cursor: pointer;
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   font-family: 'Poppins', sans-serif;
   transition: background 0.2s, border-color 0.2s;
   line-height: 1;
@@ -826,11 +1242,11 @@ export default {
   background: #c0392b;
   color: white;
   border: none;
-  padding: 0.75em 2em;
+  padding: 0.5em 1.5em;
   cursor: pointer;
   border-radius: 10px;
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-family: 'Poppins', sans-serif;
   transition: background 0.2s;
 }
@@ -848,11 +1264,11 @@ export default {
   background: #414247;
   color: #fefefe;
   border: none;
-  padding: 0.75em 2em;
+  padding: 0.5em 1.5em;
   cursor: pointer;
   border-radius: 10px;
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-family: 'Poppins', sans-serif;
   transition: background 0.2s;
 }

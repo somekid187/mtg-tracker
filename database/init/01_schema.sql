@@ -57,14 +57,28 @@ CREATE TABLE `Match`
         'Brawl','Two-Headed Giant','Commander','Custom'
         )                      NOT NULL,
     startingLife       INT     NOT NULL,
-    startTime          TIME    NOT NULL,
-    endTime            TIME,
+    startTime          DATETIME NOT NULL,
+    endTime            DATETIME,
     isTeamMatch        TINYINT NOT NULL DEFAULT 0,
     commanderThreshold INT,
     counterThreshold   INT,
     fk_appUser_creates BIGINT  NOT NULL,
     CONSTRAINT fkc_appUser_creates_match
         FOREIGN KEY (fk_appUser_creates)
+            REFERENCES AppUser (pk_appUser)
+            ON DELETE CASCADE
+);
+
+CREATE TABLE Deck
+(
+    pk_deck           BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name              VARCHAR(255)                         NOT NULL,
+    commander         VARCHAR(255),
+    description       TEXT,
+    createdAt         DATETIME DEFAULT CURRENT_TIMESTAMP() NOT NULL,
+    fk_appUser_owns   BIGINT                               NOT NULL,
+    CONSTRAINT fkc_appUser_owns_deck
+        FOREIGN KEY (fk_appUser_owns)
             REFERENCES AppUser (pk_appUser)
             ON DELETE CASCADE
 );
@@ -84,6 +98,7 @@ CREATE TABLE Player
     fk_guest_enters         BIGINT,
     fk_appUser_participates BIGINT,
     fk_team_isIncluded      INT,
+    fk_deck_uses            BIGINT,
     fk_match_isPlayedIn     BIGINT NOT NULL,
     CONSTRAINT fkc_guest_enters_player
         FOREIGN KEY (fk_guest_enters)
@@ -96,6 +111,10 @@ CREATE TABLE Player
     CONSTRAINT fkc_team_isIncluded_player
         FOREIGN KEY (fk_team_isIncluded)
             REFERENCES Team (pk_team)
+            ON DELETE SET NULL,
+    CONSTRAINT fkc_deck_uses_player
+        FOREIGN KEY (fk_deck_uses)
+            REFERENCES Deck (pk_deck)
             ON DELETE SET NULL,
     CONSTRAINT fkc_match_isPlayedIn_player
         FOREIGN KEY (fk_match_isPlayedIn)
@@ -139,6 +158,23 @@ CREATE TABLE InviteCode
             ON DELETE CASCADE
 );
 
+CREATE TABLE Invites
+(
+    pk_invite           BIGINT AUTO_INCREMENT PRIMARY KEY,
+    status              ENUM ('pending', 'accepted', 'declined') NOT NULL DEFAULT 'pending',
+    createdAt           DATETIME DEFAULT CURRENT_TIMESTAMP()     NOT NULL,
+    updatedAt           DATETIME DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),
+    fk_player_invites   BIGINT NOT NULL,
+    fk_player_isInvited BIGINT NOT NULL,
+    fk_match_hosts      BIGINT NOT NULL,
+    CONSTRAINT fkc_player_invites_invite
+        FOREIGN KEY (fk_player_invites)   REFERENCES AppUser (pk_appUser) ON DELETE CASCADE,
+    CONSTRAINT fkc_player_isInvited_invite
+        FOREIGN KEY (fk_player_isInvited) REFERENCES AppUser (pk_appUser) ON DELETE CASCADE,
+    CONSTRAINT fkc_match_hosts_invite
+        FOREIGN KEY (fk_match_hosts)      REFERENCES `Match` (pk_match)   ON DELETE CASCADE
+);
+
 CREATE TABLE RefreshToken
 (
     pk_refreshToken BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -158,6 +194,35 @@ CREATE TABLE RefreshToken
     CONSTRAINT fkc_appUser_refreshes_refreshToken
         FOREIGN KEY (fk_appUser_refreshes)
             REFERENCES AppUser (pk_appUser)
+            ON DELETE CASCADE
+);
+
+CREATE TABLE `Event`
+(
+    pk_event             BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name                 VARCHAR(255)                        NOT NULL,
+    description          TEXT,
+    createdAt            DATETIME DEFAULT CURRENT_TIMESTAMP() NOT NULL,
+    fk_appUser_organizes BIGINT                              NOT NULL,
+    CONSTRAINT fkc_appUser_organizes_event
+        FOREIGN KEY (fk_appUser_organizes)
+            REFERENCES AppUser (pk_appUser)
+            ON DELETE CASCADE
+);
+
+CREATE TABLE EventMatch
+(
+    pk_eventMatch     BIGINT AUTO_INCREMENT PRIMARY KEY,
+    fk_event_contains BIGINT NOT NULL,
+    fk_match_inEvent  BIGINT NOT NULL,
+    UNIQUE KEY uq_event_match (fk_event_contains, fk_match_inEvent),
+    CONSTRAINT fkc_event_contains_eventMatch
+        FOREIGN KEY (fk_event_contains)
+            REFERENCES `Event` (pk_event)
+            ON DELETE CASCADE,
+    CONSTRAINT fkc_match_inEvent_eventMatch
+        FOREIGN KEY (fk_match_inEvent)
+            REFERENCES `Match` (pk_match)
             ON DELETE CASCADE
 )
 
