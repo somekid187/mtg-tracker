@@ -850,7 +850,7 @@ export default {
   grid-template-areas:
     "left   top    right"
     "left   bottom right";
-  grid-template-columns: minmax(0, auto) 1fr minmax(0, auto);
+  grid-template-columns: minmax(0, 18vw) 1fr minmax(0, 18vw);
   grid-template-rows: 1fr 1fr;
   gap: 0.75em;
   padding: 0.75em;
@@ -868,14 +868,20 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 0.75em;
-  width: 220px;
+  width: 18vw;
+  max-width: 260px;
+  min-width: 120px;
+  overflow: hidden;
 }
 .rf-right {
   grid-area: right;
   display: flex;
   flex-direction: column;
   gap: 0.75em;
-  width: 220px;
+  width: 18vw;
+  max-width: 260px;
+  min-width: 120px;
+  overflow: hidden;
 }
 .rf-side-slot {
   flex: 1;
@@ -887,16 +893,20 @@ export default {
 .rf-left-card,
 .rf-right-card {
   position: absolute;
-  /* natural size is slot-height × slot-width so after rotation it fills slot exactly */
-  width: 100cqh;
-  height: 100cqw;
+  /* subtract 4px so the 2px border isn't clipped flush against the slot edge */
+  width: calc(100cqh - 4px);
+  height: calc(100cqw - 4px);
   top: 50%;
   left: 50%;
   transform-origin: center center;
   min-width: 0;
   min-height: 0;
 }
+/* rotate(90deg) CW: pre-rotation bottom → visual left, top → visual right.
+   column-reverse puts life/info at pre-rotation bottom → visual left. */
 .rf-left-card  { transform: translate(-50%, -50%) rotate(90deg); }
+/* rotate(270deg) CCW: pre-rotation top → visual left, bottom → visual right.
+   Normal order: info at top → visual left, cdmg at bottom → visual right. */
 .rf-right-card { transform: translate(-50%, -50%) rotate(270deg); }
 
 /* Player card */
@@ -987,7 +997,7 @@ export default {
 }
 
 .counter-val {
-  font-size: 1.15rem;
+  font-size: 0.95rem;
   font-weight: 700;
   line-height: 1.1;
 }
@@ -1003,7 +1013,7 @@ export default {
 }
 
 .counter-name {
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   color: #bbb;
   min-width: 2em;
   text-align: center;
@@ -1014,9 +1024,9 @@ export default {
   border: none;
   color: #fefefe;
   border-radius: 6px;
-  width: 44px;
-  height: 44px;
-  font-size: 1rem;
+  width: 36px;
+  height: 36px;
+  font-size: 0.85rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1043,8 +1053,8 @@ export default {
 }
 
 .avatar-circle {
-  width: 48px;
-  height: 48px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: #414247;
   border: 2px solid #595d63;
@@ -1056,12 +1066,12 @@ export default {
 }
 
 .avatar-circle svg {
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
 }
 
 .player-name {
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 700;
   text-align: center;
   word-break: break-word;
@@ -1081,7 +1091,7 @@ export default {
 }
 
 .life-label {
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   color: #bbb;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1098,9 +1108,9 @@ export default {
   border: none;
   color: #fefefe;
   border-radius: 10px;
-  width: 52px;
-  height: 52px;
-  font-size: 1.6rem;
+  width: 42px;
+  height: 42px;
+  font-size: 1.3rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1120,9 +1130,9 @@ export default {
 }
 
 .life-value {
-  font-size: 3.5rem;
+  font-size: 2.8rem;
   font-weight: 800;
-  min-width: 3rem;
+  min-width: 2.5rem;
   text-align: center;
   line-height: 1;
 }
@@ -1142,6 +1152,58 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 0.3em;
+  flex-shrink: 1;
+  min-height: 0;
+  overflow-y: auto;
+  max-height: 30%;
+}
+
+/* Side cards: grid layout with cdmg on the right */
+.rf-left-card.player-card,
+.rf-right-card.player-card {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  grid-template-rows: auto 1fr;
+}
+.rf-left-card .life-section,
+.rf-right-card .life-section {
+  border-bottom: none;
+}
+.rf-left-card .card-cdmg,
+.rf-right-card .card-cdmg {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  border-left: 1px solid #414247;
+  overflow-y: auto;
+  align-self: stretch;
+  max-height: none;
+}
+/* Scale down interactive elements inside rotated side cards */
+.rf-left-card .btn-life,
+.rf-right-card .btn-life {
+  width: 36px;
+  height: 36px;
+  font-size: 1.2rem;
+}
+.rf-left-card .life-value,
+.rf-right-card .life-value {
+  font-size: 2.4rem;
+}
+.rf-left-card .btn-counter,
+.rf-right-card .btn-counter {
+  width: 32px;
+  height: 32px;
+  font-size: 0.85rem;
+}
+.rf-left-card .avatar-circle,
+.rf-right-card .avatar-circle {
+  width: 36px;
+  height: 36px;
+}
+.rf-left-card .cdmg-badge,
+.rf-right-card .cdmg-badge {
+  font-size: 0.72rem;
+  padding: 0.2em 0.4em;
 }
 
 .cdmg-label {

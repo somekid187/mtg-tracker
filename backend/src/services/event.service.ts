@@ -52,9 +52,9 @@ export async function getEventByIdService(eventId: string, userId: string) {
          m.endTime,
          m.isTeamMatch,
          m.fk_appUser_creates AS createdBy
-       FROM EventMatch em
-       JOIN \`Match\` m ON em.fk_match_inEvent = m.pk_match
-       WHERE em.fk_event_contains = ?
+       FROM Organizes em
+       JOIN \`Match\` m ON em.pkfk_match = m.pk_match
+       WHERE em.pkfk_event = ?
        ORDER BY m.startTime DESC`,
       [eventId]
     );
@@ -163,10 +163,10 @@ export async function getEventStatsService(eventId: string) {
          SUM(p.isWinner = 0 AND p.finalLife IS NOT NULL) AS losses,
          ROUND(AVG(p.placement), 2)                      AS avgPlacement,
          ROUND(AVG(p.finalLife), 2)                      AS avgFinalLife
-       FROM EventMatch em
-       JOIN Player p ON p.fk_match_isPlayedIn = em.fk_match_inEvent
+       FROM Organizes em
+       JOIN Player p ON p.fk_match_isPlayedIn = em.pkfk_match
        LEFT JOIN AppUser au ON au.pk_appUser = p.fk_appUser_participates
-       WHERE em.fk_event_contains = ?
+       WHERE em.pkfk_event = ?
          AND p.fk_appUser_participates IS NOT NULL
        GROUP BY p.fk_appUser_participates, au.username
        ORDER BY wins DESC, avgPlacement ASC`,

@@ -210,18 +210,17 @@ CREATE TABLE `Event`
             ON DELETE CASCADE
 );
 
-CREATE TABLE EventMatch
+CREATE TABLE Organizes
 (
-    pk_eventMatch     BIGINT AUTO_INCREMENT PRIMARY KEY,
-    fk_event_contains BIGINT NOT NULL,
-    fk_match_inEvent  BIGINT NOT NULL,
-    UNIQUE KEY uq_event_match (fk_event_contains, fk_match_inEvent),
-    CONSTRAINT fkc_event_contains_eventMatch
-        FOREIGN KEY (fk_event_contains)
+    pkfk_event BIGINT NOT NULL,
+    pkfk_match BIGINT NOT NULL,
+    PRIMARY KEY (pkfk_event, pkfk_match),
+    CONSTRAINT fkc_event_organizes
+        FOREIGN KEY (pkfk_event)
             REFERENCES `Event` (pk_event)
             ON DELETE CASCADE,
-    CONSTRAINT fkc_match_inEvent_eventMatch
-        FOREIGN KEY (fk_match_inEvent)
+    CONSTRAINT fkc_match_organizes
+        FOREIGN KEY (pkfk_match)
             REFERENCES `Match` (pk_match)
             ON DELETE CASCADE
 )

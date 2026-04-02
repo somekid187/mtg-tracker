@@ -31,7 +31,7 @@ proc:BEGIN
                 'createdAt',         e.createdAt,
                 'organizerId',       e.fk_appUser_organizes,
                 'organizerUsername', au.username,
-                'matchCount',        (SELECT COUNT(*) FROM EventMatch em WHERE em.fk_event_contains = e.pk_event)
+                'matchCount',        (SELECT COUNT(*) FROM Organizes em WHERE em.pkfk_event = e.pk_event)
             )
         )
         FROM `Event` e

@@ -26,19 +26,19 @@ proc:BEGIN
         LEAVE proc;
     END IF;
 
-    IF EXISTS (SELECT 1 FROM EventMatch WHERE fk_event_contains = in_eventId AND fk_match_inEvent = in_matchId) THEN
+    IF EXISTS (SELECT 1 FROM Organizes WHERE pkfk_event = in_eventId AND pkfk_match = in_matchId) THEN
         SET out_response = JSON_OBJECT('success', FALSE, 'message', 'Match is already in this event.', 'code', 'ALREADY_IN_EVENT');
         LEAVE proc;
     END IF;
 
-    INSERT INTO EventMatch (fk_event_contains, fk_match_inEvent)
+    INSERT INTO Organizes (pkfk_event, pkfk_match)
     VALUES (in_eventId, in_matchId);
 
     SET out_response = JSON_OBJECT(
         'success', TRUE,
         'message', 'Match added to event successfully.',
         'code', 'SUCCESS_CREATED',
-        'data', JSON_OBJECT('pk_eventMatch', LAST_INSERT_ID())
+        'data', JSON_OBJECT('eventId', in_eventId, 'matchId', in_matchId)
     );
 END $$
 
